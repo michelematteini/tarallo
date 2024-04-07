@@ -1,0 +1,280 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Tarallo</title>
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="images/favicon-large.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+    <link href="css/tarallo.css" rel="stylesheet" type="text/css" />
+    <template id="tmpl-login">
+        <div class="centered-container">
+            <div id="login-form" class="centered-dialog dialog">
+                <label>Username</label>
+                <input type="text" id="login-username" placeholder="Username" />
+                <label>Password</label>
+                <input type="password" id="login-password" placeholder="Password" />
+                <button id="login-btn" class="contrast-btn separator">Login</button>
+                <a id="register-page-btn" class="inline-link separator" href="#">register a new account</a>
+                <p id="login-error" class="popup separator"></p>
+            </div>
+        </div>
+    </template>
+    <template id="tmpl-register">
+        <div class="centered-container">
+            <div id="login-form" class="centered-dialog dialog">
+                <label>Username</label>
+                <input type="text" id="login-username" placeholder="Username" />
+                <label>Display Name</label>
+                <input type="text" id="login-display-name" placeholder="Name Surname" />
+                <label>Password</label>
+                <input type="password" id="login-password" placeholder="Password" />
+                <button id="register-btn" class="contrast-btn separator">Register</button>
+                <a id="login-page-btn" class="inline-link separator" href="#">go back to login page</a>
+                <p id="register-error" class="popup separator"></p>
+            </div>
+        </div>
+    </template>
+    <template id="tmpl-boardlist">
+        <div id="projectbar">
+            <div id="projectbar-right" class="projectbar-tile">
+                <h3>
+                    $display_name
+                    <a id="projectbar-logout-btn" class="inline-link" href="#">log out</a>
+                </h3>
+            </div>
+        </div>
+        <div id="board-lists-container" class="vscrollable">
+            <div id="boards">
+                <div id="new-board-btn" class="boardtile boardtile-btn">
+                    <h4>&#10010 Create new board</h4>
+                </div>
+                <div id="trello-import-btn" class="boardtile boardtile-btn">
+                    <h4>&#10010 Import from Trello</h4>
+                </div>
+            </div>
+            <h2>Closed boards</h2>
+            <div id="closed-boards">
+            </div>
+        </div>
+    </template>
+    <template id="tmpl-boardtile">
+        <div class="boardtile" style="background-image: url('$background_thumb_url')" id="board-tile-$id">
+            <div class="backdrop">
+                <a href="?board_id=$id">
+                    <h4>$title</h4>
+                </a>
+                <svg class="delete-board-btn contrast-icon"><use href="#icon-trashbin" /></svg>
+            </div>
+        </div>
+    </template>
+    <template id="tmpl-closed-boardtile">
+        <div class="boardtile closed" id="board-tile-$id">
+            <a href="?board_id=$id">
+                <h4>$title</h4>
+            </a>
+        </div>
+    </template>
+    <template id="tmpl-board">
+        <div id="projectbar">
+            <div id="projectbar-left" class="projectbar-tile">
+                <h2 id="board-title" contenteditable="true" spellcheck="false">$title</h2>
+                <h3>
+                    <a id="board-change-bg-btn" class="inline-link" href="#">background</a>
+                    <a id="board-share-btn" class="inline-link" href="#">share</a>
+                </h3>
+            </div>
+            <div id="projectbar-middle" class="projectbar-tile">
+                <svg class="bin-icon contrast-icon"><use href="#icon-trashbin" /></svg>
+            </div>
+            <div id="projectbar-right" class="projectbar-tile">
+                <h3>
+                    $display_name
+                    <a class="inline-link" href="?">boards</a>
+                    <a id="projectbar-logout-btn" class="inline-link" href="#">log out</a>
+                </h3>
+            </div>
+        </div>
+        <div id="board">
+            <div id="add-cardlist-btn" class="cardlist">
+                <h3>&#10010 Add another list</h3>
+            </div>
+        </div>
+    </template>
+    <template id="tmpl-closed-board">
+        <div id="projectbar">
+            <div id="projectbar-right" class="projectbar-tile">
+                <h3>
+                    $display_name
+                    <a class="inline-link" href="?">boards</a>
+                    <a id="projectbar-logout-btn" class="inline-link" href="#">log out</a>
+                </h3>
+            </div>
+        </div>
+        <div class="centered-container">
+            <div id="closedboard" class="centered-dialog dialog">
+                <h1>This board is closed</h1>
+                <button id="closedboard-reopen-btn" class="contrast-btn">Reopen board</button>
+                <p id="closedboard-delete-label" class="hidden">All the board cards and attachments will be deleted, and you won't be able to acces them again, are you sure?</p>
+                <a id="closedboard-delete-link" class="inline-link" href="#">Permanently delete board</a>
+            </div>
+        </div>
+    </template>
+    <template id="tmpl-unaccessible-board">
+        <div id="projectbar">
+            <div id="projectbar-right" class="projectbar-tile">
+                <h3>
+                    $display_name
+                    <a class="inline-link" href="?">boards</a>
+                    <a id="projectbar-logout-btn" class="inline-link" href="#">log out</a>
+                </h3>
+            </div>
+        </div>
+        <div class="centered-container">
+            <div id="unaccessibleboard" class="centered-dialog dialog">
+                <h1>You are not a member of this board.</h1>
+                <button id="unaccessibleboard-request-btn" class="contrast-btn">Request access</button>
+                <p id="unaccessibleboard-waiting-label" class="hidden">Access has been requested to an admin, refresh this page when authorized.</p>
+            </div>
+        </div>
+    </template>
+    <template id="tmpl-cardlist">
+        <div class="cardlist vscrollable" dbid="$id" id="cardlist-$id">
+            <div class="cardlist-title">
+                <h3 contenteditable="true" spellcheck="false">$name</h3>
+                <svg class="delete-list-btn icon"><use href="#icon-trashbin" /></svg>
+            </div>
+            <div class="addcard-btn addcard-ui"><p>&#10010 Add a card</p></div>
+            <div class="card editcard-card editcard-ui hidden" contenteditable="true" placeholder="Enter a title for this card..."></div>
+            <div class="editcard-container editcard-ui hidden">
+                <button class="editcard-submit-btn contrast-btn">Add card</button>
+                <button class="editcard-cancel-btn close-btn dim-btn"></button>
+            </div>
+            <div class="cardlist-start"></div>
+        </div>
+    </template>
+    <template id="tmpl-card">
+        <div class="card" dbid="$id" id="card-$id" draggable="true">
+            <img class="lazy" src="" data-src="" />
+            <div class="card-labellist labellist hidden"></div>
+            <p>$title</p>
+            <div class="card-moved-date hidden">&#10149 $last_moved_date</div>
+        </div>
+    </template>
+    <template id="tmpl-card-label">
+        <div id="label-$card-id-$index" class="card-label label label-$index $color">$name</div>
+    </template>
+    <template id="tmpl-opencard">
+        <div id="dialog-container">
+            <div class="opencard dialog scrollable-dialog vscrollable" id="opencard-$id" dbid="$id">
+                <button class="dialog-close-btn close-btn dim-btn"></button>
+                <h2 id="opencard-title" contenteditable="true" spellcheck="false">$title</h2>
+                <div class="opencard-labellist labellist">
+                    <button class="opencard-add-label dim-btn">&#10010</button>
+                </div>
+                <div id="opencard-label-select-diag" class="label-diag dialog topmost hidden">
+                    <button class="opencard-label-create-btn label-row separator dim-btn">Create new</button>
+                    <button class="opencard-label-cancel-btn label-row dim-btn">Cancel</button>
+                </div>
+                <h3>Description</h3>
+                <div class="opencard-content" contenteditable="true" spellcheck="false">$content</div>
+                <h3>
+                    Attachments
+                    <button class="add-attachment-btn contrast-btn">Add</button>
+                </h3>
+                <div class="opencard-attachlist"></div>
+            </div>
+        </div>
+    </template>
+    <template id="tmpl-opencard-label-edit-diag">
+        <div id="opencard-label-edit-diag" class="label-diag topmost dialog" dbid="$index">
+            <button class="opencard-label label-row label $color" color="$color">$name</button>
+            <label class="label-row separator">Label name</label>
+            <input type="text" id="opencard-label-edit-name" class="label-row" value="$name" />
+            <label class="label-row separator">Label color</label>
+            <div id="opencard-label-edit-color-list" class="label-row labellist">
+            </div>
+            <button id="opencard-label-edit-cancel-btn" class="label-row separator dim-btn">Cancel</button>
+            <button id="opencard-label-edit-delete-btn" class="label-row dim-btn" confirmed="0">Delete label</button>
+            <button id="opencard-label-edit-save-btn" class="label-row contrast-btn">Save label</button>
+        </div>
+    </template>
+    <template id="tmpl-opencard-label-edit-color-tile">
+        <button class="color-tile $color"></button>
+    </template>
+    <template id="tmpl-selectable-label">
+        <div class="selectable-label-container label-row" id="label-$card-id-$index-open">
+            <button class="selectable-label label label-$index $color">$name</button>
+            <button class="selectable-label-edit-btn dim-btn">&#9998</button>
+        </div>
+    </template>
+    <template id="tmpl-opencard-label">
+        <button id="label-$card-id-$index-open" class="label label-$index $color">$name</button>
+    </template>
+    <template id="tmpl-opencard-attachment">
+        <div class="opencard-attachment" id="attachment-$id">
+            <a class="opencard-attachment-link" href="" target="_blank">
+                <div class="ext">$extension</div>
+                <img src="" />
+                <svg class="dim-icon"><use href="#icon-attachment" /></svg>
+            </a>
+            <div class="loader"></div>
+            <div class="opencard-attachment-desc">
+                <p class="attachment-name">$name</p>
+            </div>
+            <div class="opencard-attachment-btns">
+                <svg class="opencard-attachment-delete-btn opencard-attachment-btn icon"><use href="#icon-trashbin" /></svg>
+            </div>
+        </div>
+    </template>
+    <template id="tmpl-share-dialog">
+        <div id="dialog-container">
+            <div id="share-dialog" class="dialog scrollable-dialog vscrollable" dbid="$id">
+                <button class="dialog-close-btn close-btn dim-btn"></button>
+                <h2>Sharing permissions</h2>
+                <div id="share-dialog-list" class="separator">
+                    <div class="share-dialog-entry buttons separator">
+                        <p id="share-dialog-popup" class="popup"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template id="tmpl-share-dialog-entry">
+        <div class="share-dialog-entry">
+            <label class="share-dialog-item">$display_name</label>
+            <div class="share-dialog-item">
+                <select class="permission" dbvalue="$user_type" dbuser="$user_id">
+                    <option value="0">Owner</option>
+                    <option value="2">Administrator</option>
+                    <option value="6">Member</option>
+                    <option value="8">Observer</option>
+                    <option value="9">Guest</option>
+                    <option value="10">Blocked</option>
+                </select>
+            </div>
+        </div>
+    </template>
+    <svg style="display:none">
+        <symbol id="icon-trashbin" preserveAspectRatio="xMinYMin meet" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-6 5v6m4-6v6" />
+        </symbol>
+        <symbol id="icon-attachment" preserveAspectRatio="xMinYMin meet" viewBox="0 0 24 24" fill="none">
+            <path d="m21.153 10.9-9.016 9.015a5.25 5.25 0 0 1-7.425-7.425l9.016-9.015a3.5 3.5 0 1 1 4.95 4.95l-8.662 8.662a1.75 1.75 0 1 1-2.475-2.475l7.601-7.602" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </symbol>
+    </svg>
+</head>
+<body>
+	<div id="titlebar">
+		<h1>Tarall<img class="title-icon" src="images/tarallo.png" /></h1>
+	</div>
+	<div id="content">
+	</div>
+	<p id="page-error" class="popup"></p>
+	<script src="js/dragdroptouch.js"></script>
+	<script src="js/utils.js"></script>
+	<script src="js/textformat.js"></script>
+	<script src="js/api.js"></script>
+	<script src="js/tarallo.js"></script>
+</body>
+</html>

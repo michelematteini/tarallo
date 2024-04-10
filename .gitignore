@@ -4,3 +4,6 @@
 
 *.suo
 .vs/
+.DS_Store
+Thumbs.db
+/mariadb

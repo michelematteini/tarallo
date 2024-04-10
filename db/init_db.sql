@@ -17,7 +17,7 @@ SET time_zone = "+00:00";
 CREATE TABLE `tarallo_attachments` (
   `id` int NOT NULL,
   `name` varchar(100) NOT NULL,
-  `guid` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `guid` varchar(64) CHARACTER SET utf8mb4 NOT NULL,
   `extension` varchar(10) NOT NULL,
   `card_id` int NOT NULL,
   `board_id` int NOT NULL
@@ -31,10 +31,10 @@ CREATE TABLE `tarallo_attachments` (
 
 CREATE TABLE `tarallo_boards` (
   `id` int NOT NULL,
-  `title` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `title` varchar(64) CHARACTER SET utf8mb4 NOT NULL,
   `closed` int NOT NULL DEFAULT '0',
   `background_guid` varchar(64) DEFAULT NULL,
-  `label_names` varchar(400) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `label_names` varchar(400) CHARACTER SET utf8mb4 NOT NULL,
   `label_colors` varchar(400) NOT NULL
 );
 
@@ -93,7 +93,7 @@ CREATE TABLE `tarallo_permissions` (
 CREATE TABLE `tarallo_users` (
   `id` int NOT NULL,
   `username` varchar(30) NOT NULL,
-  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
   `display_name` varchar(30) NOT NULL,
   `register_time` bigint NOT NULL,
   `last_access_time` bigint NOT NULL

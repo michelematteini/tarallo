@@ -4,12 +4,13 @@ FROM php:7-fpm-alpine
 EXPOSE 80
 
 RUN apk add --no-cache s6-overlay~3 && \
-    docker-php-ext-install pdo pdo_mysql opcache && \
-    mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+    docker-php-ext-install pdo pdo_mysql opcache
 
 COPY --from=caddy /usr/bin/caddy /usr/bin/caddy
 COPY docker/root/ /
 COPY source/ /var/www/html
+
+RUN mv "/php.ini" "$PHP_INI_DIR/php.ini"
 
 RUN chown -R www-data:www-data /var/www/html
 

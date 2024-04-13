@@ -2,6 +2,7 @@ FROM caddy:2-alpine as caddy
 
 FROM php:7-fpm-alpine
 EXPOSE 80
+VOLUME /var/www/html/boards
 
 RUN apk add --no-cache s6-overlay~3 zlib libpng libjpeg-turbo && \
     apk add --no-cache --virtual .build-deps zlib-dev libpng-dev libjpeg-turbo-dev && \

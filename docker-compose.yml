@@ -12,6 +12,8 @@ services:
       # load username/password from .env file
       TARALLO_DB_USERNAME: $DB_USERNAME
       TARALLO_DB_PASSWORD: $DB_PASSWORD
+    volumes:
+      - ./data/boards:/var/www/html/boards
     ports:
       - 8080:80
     depends_on:

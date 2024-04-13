@@ -1,0 +1,32 @@
+services:
+  tarallo:
+    image: ghcr.io/michelematteini/tarallo:latest
+    build:
+      dockerfile: docker/Dockerfile
+      context: .
+    restart: unless-stopped
+    environment:
+      TARALLO_ENV_CONFIG: 1
+      TARALLO_FTP_ROOT: "/"
+      TARALLO_DB_DSN: "mysql:host=mariadb;port=3306;dbname=${DB_NAME};charset=utf8"
+      # load username/password from .env file
+      TARALLO_DB_USERNAME: $DB_USERNAME
+      TARALLO_DB_PASSWORD: $DB_PASSWORD
+    ports:
+      - 8080:80
+    depends_on:
+      - mariadb
+
+  mariadb:
+    image: mariadb:lts
+    restart: unless-stopped
+    environment:
+      MARIADB_RANDOM_ROOT_PASSWORD: true
+      # load username/password from .env file
+      MARIADB_DATABASE: $DB_NAME
+      MARIADB_USER: $DB_USERNAME
+      MARIADB_PASSWORD: $DB_PASSWORD
+    volumes:
+      - ./mariadb:/var/lib/mysql:Z
+      # this loads any .sql files from db/ into database upon initial creation
+      - ./db:/docker-entrypoint-initdb.d:ro

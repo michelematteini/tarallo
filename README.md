@@ -4,9 +4,17 @@ Build as an easy to host Trello alternative with no dependencies, only requiring
 Compatible with any DBMS suported by PHP PDO (see https://www.php.net/manual/en/pdo.drivers.php).
 
 ## To host an instance:
+
+### Locally
 1. copy the content of **source/** to your web server (sub-directories work fine)
 2. modify **config.php** to setup the db connection string (**DB_DSN**) and an ftp path to the src folder  (**FTP_ROOT**)
 3. run db/init_db.sql on your DB
+
+### Docker
+1. update variables (database password) in `.env` file
+2. run `docker compose build` from project root
+3. run `docker compose up -d`
+4. access site via [http://localhost:8080](http://localhost:8080)
 
 Additional settings can be found in the "tarallo_settings" DB table.
 

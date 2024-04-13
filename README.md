@@ -10,7 +10,7 @@ Compatible with any DBMS suported by PHP PDO (see https://www.php.net/manual/en/
 2. modify **config.php** to setup the db connection string (**DB_DSN**) and an ftp path to the src folder  (**FTP_ROOT**) and optionally other parameters.
 3. run db/init_db.sql on your DB
 
-### Docker (currently not fully working see issue: https://github.com/michelematteini/tarallo/issues/3)
+### Docker
 1. update variables (database password) in `.env` file
 2. run `docker compose build` from project root
 3. run `docker compose up -d`

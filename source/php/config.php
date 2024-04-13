@@ -2,33 +2,40 @@
 
 define('CONFIG_FILE', 1);
 
-/**
-  * =============== DB Settings =======================================
-  */
+// ====== SERVER CONFIGURATION ================
 
-define('DB_DSN', getenv('DB_DSN') ?? 'mysql:host=mysql;port=3306;dbname=tarallo;charset=utf8');
-define('DB_USERNAME', getenv('DB_USERNAME') ?? 'tarallo');
-define('DB_PASSWORD', getenv('DB_PASSWORD') ?? '');
+$CFG = array();
 
-/**
-  * =============== FTP Settings ======================================
-  */
+// Define the Tarallo root folder location for file operations.
+$CFG["FTP_ROOT"] = '/';
+// DB connection string
+$CFG["DB_DSN"] = 'mysql:host=mysql;port=3306;dbname=tarallo;charset=utf8';
+// DB username 
+$CFG["DB_USERNAME"] = '';
+// DB password
+$CFG["DB_PASSWORD"] = '';
 
-/**
-  * Define the Tarallo root folder location for file operations.
-  * Uncomment this line if Tarallo is not located in the ftp root.
-  */
-// define('FTP_ROOT', '/membri/trytarallo');
+// ===========================================
 
-/*
- * Return the correct absolute relative ftp path from a path relative to the app folder.
- * usage: ftpdir('/my/absolute/path.txt')
- */
+if (getenv('TARALLO_ENV_CONFIG'))
+{
+	// config from environment
+	if (getenv('TARALLO_FTP_ROOT'))
+		$CFG["FTP_ROOT"] = getenv('TARALLO_FTP_ROOT'); 
+	if (getenv('TARALLO_DB_DSN'))
+		$CFG["DB_DSN"] = getenv('TARALLO_DB_DSN');
+	if (getenv('TARALLO_DB_USERNAME'))
+		$CFG["DB_USERNAME"] = getenv('TARALLO_DB_USERNAME');
+	if (getenv('TARALLO_DB_PASSWORD'))
+		$CFG["DB_PASSWORD"] = getenv('TARALLO_DB_PASSWORD'); 
+}
+
+// Returns the correct absolute ftp path from a path relative to the app folder.
+// usage: ftpdir('my/relative/path.txt')
 function FTPDir($relativePath) {
+	global $CFG;
 	$absPath = $relativePath;
-	if (defined('FTP_ROOT')) {
-		$absPath = FTP_ROOT . '/' . $absPath;
-	}
+	$absPath = $CFG["FTP_ROOT"] . '/' . $absPath;	
 	return str_replace('//', '/', '/' . $absPath);
 }
 

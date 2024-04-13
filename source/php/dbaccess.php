@@ -8,6 +8,8 @@
 		//Open a new connection to a database.
 		public static function open()
 		{
+			global $CFG;
+
 			if (is_null(self::$db))
 			{
 				$opt = array(
@@ -16,11 +18,9 @@
 					PDO::ATTR_EMULATE_PREPARES   => false,
 				);
 				try {
-					self::$db = new PDO(DB_DSN, DB_USERNAME, DB_PASSWORD, $opt);
+					self::$db = new PDO($CFG["DB_DSN"], $CFG["DB_USERNAME"], $CFG["DB_PASSWORD"], $opt);
 				} catch (PDOException $e) {
 					http_response_code(500);
-					exit("Card not found.");
-					//exit("DB Connection Error: " . $e->getMessage());
 					exit("DB Connection Error.");
 				}	
 			}

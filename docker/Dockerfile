@@ -10,8 +10,6 @@ COPY --from=caddy /usr/bin/caddy /usr/bin/caddy
 COPY docker/root/ /
 COPY source/ /var/www/html
 
-RUN mv "/php.ini" "$PHP_INI_DIR/php.ini"
-
 RUN chown -R www-data:www-data /var/www/html
 
 ENV S6_BEHAVIOUR_IF_STAGE2_FAILS=2

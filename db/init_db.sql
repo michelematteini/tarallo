@@ -115,8 +115,9 @@ CREATE TABLE `tarallo_settings` (
 --
 
 INSERT INTO `tarallo_settings` (`id`, `name`, `value`, `client_access`) VALUES
-(1, 'registration_enabled', '1', 0),
-(2, 'attachment_max_size_kb', '2048', 1);
+(1, 'db_version', '1-0', 0),
+(2, 'registration_enabled', '1', 0),
+(3, 'attachment_max_size_kb', '2048', 1);
 
 --
 -- Indexes for dumped tables

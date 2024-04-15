@@ -683,9 +683,16 @@ class TaralloClient {
 		TaralloServer.Call("UpdateCardContent", args, (response) => this.OnCardUpdated(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
 	}
 
-	OnAttachmentAdded(jsonResponseObj) {
+	RemoveUiAttachmentPlaceholder() {
 		const attachlistElem = document.querySelector(".opencard-attachlist");
-		attachlistElem.querySelector(".loader").parentElement.remove(); // delete loading placeholder
+		if (attachlistElem) {
+			attachlistElem.querySelector(".loader").parentElement.remove();
+		}
+	}
+
+	OnAttachmentAdded(jsonResponseObj) {
+		this.RemoveUiAttachmentPlaceholder();
+		const attachlistElem = document.querySelector(".opencard-attachlist");
 		this.LoadOpenCardAttachment(jsonResponseObj, attachlistElem);
 		this.OnCardUpdated(jsonResponseObj["card"]);
 	}
@@ -696,7 +703,10 @@ class TaralloClient {
 		args["card_id"] = cardID;
 		args["filename"] = file.name;
 		args["attachment"] = await TaralloUtils.FileToBase64(file);
-		TaralloServer.Call("UploadAttachment", args, (response) => this.OnAttachmentAdded(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
+		TaralloServer.Call("UploadAttachment", args, (response) => this.OnAttachmentAdded(response), (msg) => {
+			this.RemoveUiAttachmentPlaceholder();
+			this.ShowErrorPopup(msg, "page-error");
+		});
 		const attachlistElem = document.querySelector(".opencard-attachlist");
 		this.LoadOpenCardAttachment({"id":0, "name":"uploading..." } , attachlistElem); // empty loading attachment
 	}

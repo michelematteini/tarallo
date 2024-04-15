@@ -6,8 +6,6 @@ services:
       context: .
     restart: unless-stopped
     environment:
-      TARALLO_ENV_CONFIG: 1
-      TARALLO_FTP_ROOT: "/var/www/html"
       TARALLO_DB_DSN: "mysql:host=mariadb;port=3306;dbname=${DB_NAME};charset=utf8"
       # load username/password from .env file
       TARALLO_DB_USERNAME: $DB_USERNAME

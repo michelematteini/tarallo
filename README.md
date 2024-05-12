@@ -23,6 +23,10 @@ You will also be able to access a showcase board.
 3. run `docker compose up -d`
 4. access site via [http://localhost:8080](http://localhost:8080)
 
+## Updating an instance to a new version:
+1. copy the content of `source/` to your web server, overriding existing ones
+2. check your db version (found in the db table `tarallo_settings`): if it's lower than the one in `db/init_db.sql`, all the `db/update_*_to_*.sql` queries that brings your db to the current version should also be executed
+
 Additional settings can be found in the "tarallo_settings" DB table.
 ![Preview2](screenshots/preview3.JPG)
 ![Preview3](screenshots/preview1.JPG)

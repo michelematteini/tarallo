@@ -35,7 +35,8 @@ CREATE TABLE `tarallo_boards` (
   `closed` int NOT NULL DEFAULT '0',
   `background_guid` varchar(64) DEFAULT NULL,
   `label_names` varchar(400) NOT NULL,
-  `label_colors` varchar(400) NOT NULL
+  `label_colors` varchar(400) NOT NULL,
+  `last_modified_time` bigint NOT NULL 
 );
 
 -- --------------------------------------------------------
@@ -115,7 +116,7 @@ CREATE TABLE `tarallo_settings` (
 --
 
 INSERT INTO `tarallo_settings` (`id`, `name`, `value`, `client_access`) VALUES
-(1, 'db_version', '1-0', 0),
+(1, 'db_version', '1-1', 0),
 (2, 'registration_enabled', '1', 0),
 (3, 'attachment_max_size_kb', '2048', 1);
 

@@ -364,6 +364,8 @@ class API
 			0 // label_mask
 		);
 
+		self::UpdateBoardModifiedTime($request["board_id"]);
+
 		// prepare the response
 		$response = self::CardRecordToData($newCardRecord);
 		return $response;
@@ -376,6 +378,8 @@ class API
 
 		// delete the card
 		self::DeleteCardInternal($request["board_id"], $request["deleted_card_id"]);
+
+		self::UpdateBoardModifiedTime($request["board_id"]);
 	}
 
 	public static function MoveCard($request)
@@ -415,6 +419,8 @@ class API
 			DB::setParam("old_card_id", $request["moved_card_id"]);
 			DB::query($updateAttachmentsQuery);
 
+			self::UpdateBoardModifiedTime($request["board_id"]);
+
 			DB::commit();
 		}
 		catch(Exception $e)
@@ -436,10 +442,13 @@ class API
 		// query and validate card id
 		$cardRecord = self::GetCardData($request["board_id"], $request["id"]);
 
+		// update the card
 		$titleUpdateQuery = "UPDATE tarallo_cards SET title = :title WHERE id = :id";
 		DB::setParam("title", $request["title"]);
 		DB::setParam("id", $request["id"]);
 		DB::query($titleUpdateQuery);
+		
+		self::UpdateBoardModifiedTime($request["board_id"]);
 
 		$cardRecord["title"] = $request["title"];
 		return self::CardRecordToData($cardRecord);
@@ -453,10 +462,13 @@ class API
 		// query and validate card id
 		$cardRecord = self::GetCardData($request["board_id"], $request["id"]);
 
+		// update the content
 		$titleUpdateQuery = "UPDATE tarallo_cards SET content = :content WHERE id = :id";
 		DB::setParam("content", $request["content"]);
 		DB::setParam("id", $request["id"]);
 		DB::query($titleUpdateQuery);
+
+		self::UpdateBoardModifiedTime($request["board_id"]);
 
 		$cardRecord["content"] = $request["content"];
 		return self::CardRecordToData($cardRecord);
@@ -512,6 +524,8 @@ class API
 			DB::query("UPDATE tarallo_cards SET cover_attachment_id = :attachment_id WHERE id = :card_id");
 		}
 
+		self::UpdateBoardModifiedTime($request["board_id"]);
+
 		// re-query added attachment and card and return their data
 		$attachmentRecord = self::GetAttachmentRecord($request["board_id"], $attachmentID);
 		$response = self::AttachmentRecordToData($attachmentRecord);
@@ -556,6 +570,8 @@ class API
 		DB::setParam("background_guid", $guid);
 		DB::query("UPDATE tarallo_boards SET background_guid = :background_guid WHERE id = :board_id");
 
+		self::UpdateBoardModifiedTime($request["board_id"]);
+
 		$boardData["background_url"] = $newBackgroundPath;
 		$boardData["background_thumb_url"] = $newBackgroundThumbPath;
 		return $boardData;
@@ -581,6 +597,8 @@ class API
 		DB::setParam("attachment_id", $attachmentRecord["id"]);
 		DB::setParam("card_id", $attachmentRecord["card_id"]);
 		DB::query("UPDATE tarallo_cards SET cover_attachment_id = 0 WHERE cover_attachment_id = :attachment_id AND id = :card_id");
+
+		self::UpdateBoardModifiedTime($request["board_id"]);
 
 		// re-query added attachment and card and return their data
 		$response = self::AttachmentRecordToData($attachmentRecord);
@@ -629,6 +647,8 @@ class API
 		DB::setParam("id", $request["id"]);
 		DB::query("UPDATE tarallo_cardlists SET name = :name WHERE id = :id");
 
+		self::UpdateBoardModifiedTime($request["board_id"]);
+
 		// return the cardlist data
 		$cardlistData["name"] = $request["name"];
 		return $cardlistData;
@@ -641,6 +661,8 @@ class API
 
 		// insert the new cardlist
 		$newCardListData = self::AddNewCardListInternal($boardData["id"], $request["prev_list_id"], $request["name"]);
+
+		self::UpdateBoardModifiedTime($request["board_id"]);
 
 		return $newCardListData;
 	}
@@ -666,6 +688,8 @@ class API
 		// delete the list
 		self::DeleteCardListInternal($cardListData);
 
+		self::UpdateBoardModifiedTime($request["board_id"]);
+
 		return $cardListData;
 	}
 
@@ -678,6 +702,8 @@ class API
 		DB::setParam("title", self::CleanBoardTitle($request["title"]));
 		DB::setParam("id", $request["board_id"]);
 		DB::query("UPDATE tarallo_boards SET title = :title WHERE id = :id");
+
+		self::UpdateBoardModifiedTime($request["board_id"]);
 
 		// requery and return the board data
 		return self::GetBoardData($request["board_id"]);
@@ -707,6 +733,8 @@ class API
 		DB::setParam("id", $request["id"]);
 		DB::query("UPDATE tarallo_boards SET closed = 1 WHERE id = :id");
 
+		self::UpdateBoardModifiedTime($request["board_id"]);
+
 		$boardData["closed"] = 1;
 		return $boardData;
 	}
@@ -719,6 +747,8 @@ class API
 		// mark the board as closed
 		DB::setParam("id", $request["id"]);
 		DB::query("UPDATE tarallo_boards SET closed = 0 WHERE id = :id");
+
+		self::UpdateBoardModifiedTime($request["board_id"]);
 
 		$boardData["closed"] = 0;
 		return $boardData;
@@ -982,6 +1012,7 @@ class API
 
 		// update the board
 		self::UpdateBoardLabelsInternal($request["board_id"], $boardLabelNames, $boardLabelColors);
+		self::UpdateBoardModifiedTime($request["board_id"]);
 
 		// return the updated labels
 		$response = array();
@@ -1014,6 +1045,7 @@ class API
 		
 		// update the board
 		self::UpdateBoardLabelsInternal($request["board_id"], $boardLabelNames, $boardLabelColors);
+		self::UpdateBoardModifiedTime($request["board_id"]);
 
 		// return the updated label
 		$response = array();
@@ -1054,6 +1086,7 @@ class API
 		
 		// update the board
 		self::UpdateBoardLabelsInternal($request["board_id"], $boardLabelNames, $boardLabelColors);
+		self::UpdateBoardModifiedTime($request["board_id"]);
 
 		// remove the label flag from all the cards of this board
 		DB::setParam("removed_label_mask", ~(1 << $labelIndex));
@@ -1103,6 +1136,8 @@ class API
 		DB::setParam("label_mask", $labelMask);
 		DB::setParam("card_id", $cardData["id"]);
 		DB::query("UPDATE tarallo_cards SET label_mask = :label_mask WHERE id = :card_id");
+
+		self::UpdateBoardModifiedTime($request["board_id"]);
 
 		// return info about the updated label
 		$response = array();
@@ -1171,6 +1206,8 @@ class API
 		DB::setParam("user_id", $request["user_id"]);
 		DB::setParam("user_type", $request["user_type"]);
 		DB::query($updatePermissionQuery);
+
+		self::UpdateBoardModifiedTime($request["board_id"]);
 
 		// query back for the updated permission
 		DB::setParam("board_id", $request["board_id"]);
@@ -1541,11 +1578,12 @@ class API
 			DB::beginTransaction();
 		
 			// create a new board record
-			$createBoardQuery = "INSERT INTO tarallo_boards (title, label_names, label_colors)";
-			$createBoardQuery .= " VALUES (:title, :label_names, :label_colors)";
+			$createBoardQuery = "INSERT INTO tarallo_boards (title, label_names, label_colors, last_modified_time)";
+			$createBoardQuery .= " VALUES (:title, :label_names, :label_colors, :last_modified_time)";
 			DB::setParam("title", self::CleanBoardTitle($title));
 			DB::setParam("label_names", "");
 			DB::setParam("label_colors", "");
+			DB::setParam("last_modified_time", time());
 			$newBoardID = DB::query($createBoardQuery, true);
 
 			// create the owner permission record
@@ -1647,6 +1685,13 @@ class API
 		self::CheckPermissions($boardRecord["user_type"], $maxUserType);
 
 		return self::BoardRecordToData($boardRecord);
+	}
+
+	private static function UpdateBoardModifiedTime($boardID)
+	{
+		DB::setParam("last_modified_time", time());
+		DB::setParam("board_id", $boardID);
+		DB::query("UPDATE tarallo_boards SET last_modified_time = :last_modified_time WHERE id = :board_id");
 	}
 
 	private static function CheckPermissions($userType, $requestedUserType) 

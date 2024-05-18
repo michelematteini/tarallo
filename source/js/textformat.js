@@ -75,6 +75,8 @@ function ContentMarkupToHtml(markup) {
             if (tagStack[tagStack.length - 1] !== "</div>") {
                 // start of multiline code block
                 lineHtml += "<div class=\"monospace\">";
+                // copy to clipboard button
+                lineHtml += "<span contenteditable=false class='copy-btn'><svg class=\"dim-icon\"><use href=\"#icon-copy\" /></svg></span>";
                 tagStack.push("</div>");
             } else {
                 // end of multiline code block
@@ -180,6 +182,10 @@ function HtmlNodeToMarkup(htmlNode) {
                     outerHTML = "`" + outerHTML + "`";
                 }
                 break;
+            // tags that will be completely removed, content included
+            case "SVG":
+                outerHTML = "";
+                break;
         }
         childNode.outerHTML = outerHTML;
     }
@@ -213,4 +219,14 @@ function ContentHtmlToMarkupEditing(html) {
     editableMarkup = editableMarkup.replaceAll("\n", "<br>");
 
     return editableMarkup;
+}
+
+function DecodeHTMLEntities(text) {
+    const span = document.createElement('span');
+
+    return text
+        .replace(/&[#A-Za-z0-9]+;/gi, (entity, position, text) => {
+            span.innerHTML = entity;
+            return span.innerText;
+        });
 }

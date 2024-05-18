@@ -176,7 +176,10 @@
                     <button class="opencard-label-create-btn label-row separator dim-btn">Create new</button>
                     <button class="opencard-label-cancel-btn label-row dim-btn">Cancel</button>
                 </div>
-                <h3>Description</h3>
+                <div id="opencard-content-toolbar">
+                    <h3>Description</h3>
+                    <svg class="opencard-lock-btn icon"><use href="#icon-unlocked" /></svg>
+                </div>
                 <div class="opencard-content" contenteditable="true" spellcheck="false">$content</div>
                 <h3>
                     Attachments
@@ -261,6 +264,18 @@
         </symbol>
         <symbol id="icon-attachment" preserveAspectRatio="xMinYMin meet" viewBox="0 0 24 24" fill="none">
             <path d="m21.153 10.9-9.016 9.015a5.25 5.25 0 0 1-7.425-7.425l9.016-9.015a3.5 3.5 0 1 1 4.95 4.95l-8.662 8.662a1.75 1.75 0 1 1-2.475-2.475l7.601-7.602" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </symbol>
+        <symbol id="icon-locked" viewBox="0 0 20 20" fill="none">
+            <path fill="currentColor" fill-rule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clip-rule="evenodd" />
+        </symbol>
+        <symbol id="icon-unlocked" viewBox="0 0 20 20">
+            <path fill="currentColor" fill-rule="evenodd" d="M14.5 1A4.5 4.5 0 0 0 10 5.5V9H3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1.5V5.5a3 3 0 1 1 6 0v2.75a.75.75 0 0 0 1.5 0V5.5A4.5 4.5 0 0 0 14.5 1Z" clip-rule="evenodd" />
+        </symbol>
+        <symbol  id="icon-copy" viewBox="0 0 24 24">
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                <path d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2Z" />
+                <path d="M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" />
+            </g>
         </symbol>
     </svg>
 </head>

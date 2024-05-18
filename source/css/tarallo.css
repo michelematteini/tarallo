@@ -476,6 +476,15 @@ option {
     max-width: 40rem;
     min-height: 30rem;
 }
+    .opencard #opencard-content-toolbar {
+        display: flex;
+        align-items: baseline;
+    }
+
+        .opencard #opencard-content-toolbar .icon {
+            flex: 0 0 2rem;
+            height: 1.4rem;
+        }
 
 .opencard-content {
     padding: 0.5rem;
@@ -518,6 +527,10 @@ option {
         
     }
 
+        .opencard-content .monospace p {
+            color: var(--text-color-3);
+        }
+
     .opencard-content span.monospace {      
         padding: 0rem 0.5rem;
     }
@@ -528,9 +541,14 @@ option {
         border-left: solid 0.5rem var(--bg-color-4);
     }
 
-        .opencard-content .monospace p {
-            color: var(--text-color-3);
+        .opencard-content div.monospace .copy-btn {
+            float: right;
         }
+
+            .opencard-content div.monospace .copy-btn svg {
+                height: 1.4rem;
+                width: 1.4rem;
+            }
 
 .opencard h2 {
     border-radius: var(--border-radius);

@@ -406,6 +406,11 @@ class TaralloClient {
 			}
 		}
 
+		// locked status
+		if (jsonResponseObj["locked"]) {
+			this.ToggleOpenCardLock(openCardElem);
+		}
+
 		// events
 		TaralloUtils.SetEventBySelector(openCardElem, ".dialog-close-btn", "onclick", () => this.UiCloseDialog());
 		TaralloUtils.SetEventBySelector(openCardElem, "#opencard-title", "onblur", (elem) => this.UiCardTitleChanged(elem, openCardData["id"]));
@@ -416,6 +421,7 @@ class TaralloClient {
 		TaralloUtils.SetEventBySelector(openCardElem, ".opencard-content", "onfocus", (elem) => this.UiCardContentEditing(elem));
 		TaralloUtils.SetEventBySelector(openCardElem, ".opencard-content", "onblur", (elem) => this.UiCardContentChanged(elem, openCardData["id"]));
 		TaralloUtils.SetEventBySelector(openCardElem, ".add-attachment-btn", "onclick", () => this.UiAddAttachment(openCardData["id"]));
+		TaralloUtils.SetEventBySelector(openCardElem, ".opencard-lock-btn", "onclick", (elem) => this.UiCardContentLock(elem, openCardElem));
 		this.SetCardContentEventHandlers(openCardElem.querySelector(".opencard-content"));
 
 		const contentElem = TaralloUtils.GetContentElement();
@@ -631,10 +637,17 @@ class TaralloClient {
 	}
 
 	SetCardContentEventHandlers(contentElem) {
-		// attach events to checkboxes 
-		// so that their state is immediately committed to the server
+		// checkboxes: their state is immediately committed to the server
 		for (const checkboxElem of contentElem.querySelectorAll("input[type=checkbox]")) {
 			checkboxElem.onchange = () => this.UiCardCheckboxChanged(checkboxElem, contentElem);
+		}
+
+		// copy to clipboard buttons
+		for (const copyBtnElem of contentElem.querySelectorAll(".copy-btn")) {
+			copyBtnElem.onmousedown = (event) => {
+				this.UiCardContentToClipboard(copyBtnElem.parentElement);
+				event.preventDefault();
+			}
 		}
 	}
 
@@ -681,6 +694,41 @@ class TaralloClient {
 		args["id"] = contentElement.closest(".opencard").getAttribute("dbid");
 		args["content"] = contentMarkup;
 		TaralloServer.Call("UpdateCardContent", args, (response) => this.OnCardUpdated(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
+	}
+
+	UiCardContentToClipboard(contentElem) {
+		// save the content of the specified div to clipboard
+		const contentMarkup = ContentHtmlToMarkup(contentElem.innerHTML);
+		const textContent = DecodeHTMLEntities(contentMarkup);
+		navigator.clipboard.writeText(textContent);
+		this.ShowInfoPopup("Copied!", "page-error");
+	}
+
+	UiCardContentLock(btnElem, opencardElem) {
+		this.ToggleOpenCardLock(opencardElem);
+
+		// update locked status on the server
+		let args = [];
+		args["id"] = btnElem.closest(".opencard").getAttribute("dbid");
+		args["locked"] = btnElem.classList.contains("locked");
+		TaralloServer.Call("UpdateCardFlags", args, (response) => this.OnCardUpdated(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
+	}
+
+	ToggleOpenCardLock(opencardElem) {
+		const contentElem = opencardElem.querySelector(".opencard-content");
+		const btnElem = opencardElem.querySelector(".opencard-lock-btn");
+
+		if (btnElem.classList.contains("locked")) {
+			// unlock the card content
+			btnElem.querySelector("use").setAttribute("href", "#icon-unlocked");
+			btnElem.classList.remove("locked");
+			contentElem.setAttribute("contenteditable", "true");
+		} else {
+			// lock the card content
+			btnElem.querySelector("use").setAttribute("href", "#icon-locked");
+			btnElem.classList.add("locked");
+			contentElem.setAttribute("contenteditable", "false");
+		}
 	}
 
 	RemoveUiAttachmentPlaceholder() {

@@ -320,7 +320,11 @@ class API
 		$openCardQuery .= " WHERE tarallo_cards.id = :id AND tarallo_permissions.user_id = :user_id";
 		DB::setParam("user_id", $_SESSION["user_id"]); 
 		DB::setParam("id", $request["id"]);
-		$response = DB::fetch_row($openCardQuery);
+
+		// init the response with the card data and its content
+		$cardRecord = DB::fetch_row($openCardQuery);
+		$response = self::CardRecordToData($cardRecord);
+		$response["content"] = $cardRecord["content"];
 
 		self::CheckPermissions($response["user_type"], self::USERTYPE_Observer);
 
@@ -361,7 +365,8 @@ class API
 			"Insert the card description here.",
 			"0", // cover_attachment_id
 			time(), // last_moved_time
-			0 // label_mask
+			0, // label_mask
+			0 // flags
 		);
 
 		self::UpdateBoardModifiedTime($request["board_id"]);
@@ -410,7 +415,8 @@ class API
 				$cardRecord["content"],
 				$cardRecord["cover_attachment_id"],
 				$lastMovedTime,
-				$cardRecord["label_mask"]
+				$cardRecord["label_mask"],
+				$cardRecord["flags"]
 			);
 
 			// update attachments card_id
@@ -471,6 +477,31 @@ class API
 		self::UpdateBoardModifiedTime($request["board_id"]);
 
 		$cardRecord["content"] = $request["content"];
+		return self::CardRecordToData($cardRecord);
+	}
+
+	public static function UpdateCardFlags($request)
+	{
+		// query and validate board id
+		$boardData = self::GetBoardData($request["board_id"], self::USERTYPE_Member);
+
+		// query and validate card id
+		$cardRecord = self::GetCardData($request["board_id"], $request["id"]);
+
+		// calculate the flag mask
+		$cardFlagList = self::CardFlagMaskToList($cardRecord["flags"]);
+		if (isset($request["locked"]))
+			$cardFlagList["locked"] = $request["locked"];
+		$cardRecord["flags"] = self::CardFlagListToMask($cardFlagList);
+
+		// update the flags in the db
+		$flagsUpdateQuery = "UPDATE tarallo_cards SET flags = :flags WHERE id = :id";
+		DB::setParam("flags", $cardRecord["flags"]);
+		DB::setParam("id", $request["id"]);
+		DB::query($flagsUpdateQuery);
+
+		self::UpdateBoardModifiedTime($request["board_id"]);
+
 		return self::CardRecordToData($cardRecord);
 	}
 
@@ -1341,7 +1372,7 @@ class API
 		return $cardRecord;
 	}
 
-	private static function AddNewCardInternal($boardID, $cardlistID, $prevCardID, $title, $content, $coverAttachmentID, $lastMovedTime, $labelMask) 
+	private static function AddNewCardInternal($boardID, $cardlistID, $prevCardID, $title, $content, $coverAttachmentID, $lastMovedTime, $labelMask, $flagMask) 
 	{
 		// count the card in the destination cardlist
 		$cardCountQuery = "SELECT COUNT(*) FROM tarallo_cards WHERE cardlist_id = :cardlist_id";
@@ -1394,8 +1425,8 @@ class API
 			DB::beginTransaction();
 
 			// add a new card before the first, with the specified title
-			$addCardQuery = "INSERT INTO tarallo_cards (title, content, prev_card_id, next_card_id, cardlist_id, board_id, cover_attachment_id, last_moved_time, label_mask)";
-			$addCardQuery .= " VALUES (:title, :content, :prev_card_id, :next_card_id, :cardlist_id, :board_id, :cover_attachment_id, :last_moved_time, :label_mask)";
+			$addCardQuery = "INSERT INTO tarallo_cards (title, content, prev_card_id, next_card_id, cardlist_id, board_id, cover_attachment_id, last_moved_time, label_mask, flags)";
+			$addCardQuery .= " VALUES (:title, :content, :prev_card_id, :next_card_id, :cardlist_id, :board_id, :cover_attachment_id, :last_moved_time, :label_mask, :flags)";
 			DB::setParam("title", $title);
 			DB::setParam("content", $content);
 			DB::setParam("prev_card_id", $prevCardID);
@@ -1405,6 +1436,7 @@ class API
 			DB::setParam("cover_attachment_id", $coverAttachmentID);
 			DB::setParam("last_moved_time", $lastMovedTime);
 			DB::setParam("label_mask", $labelMask);
+			DB::setParam("flags", $flagMask);
 			$newCardID = DB::query($addCardQuery, true);
 
 			if ($nextCardID > 0)
@@ -1623,7 +1655,22 @@ class API
 		{
 			$card["last_moved_date"] = date("d M Y", $cardRecord["last_moved_time"]);
 		}
+		$card = array_merge($card, self::CardFlagMaskToList($cardRecord["flags"]));
 		return $card;
+	}
+
+	private static function CardFlagMaskToList($flagMask)
+	{
+		$flagList = array();
+		$flagList["locked"] = $flagMask & 0x001;
+		return $flagList;
+	}
+
+	private static function CardFlagListToMask($flagList)
+	{
+		$flagMask = 0;
+		$flagMask += $flagList["locked"] ? 1 : 0;
+		return $flagMask;
 	}
 
 	private static function AttachmentRecordToData($attachmentRecord)

@@ -69,7 +69,8 @@ CREATE TABLE `tarallo_cards` (
   `board_id` int NOT NULL COMMENT 'id of the board in which this card is located',
   `cover_attachment_id` int NOT NULL DEFAULT '0',
   `last_moved_time` bigint NOT NULL,
-  `label_mask` int NOT NULL
+  `label_mask` int NOT NULL,
+  `flags` int NOT NULL
 );
 
 -- --------------------------------------------------------

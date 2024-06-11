@@ -104,16 +104,20 @@ class TaralloUtils {
 	* @param {String} contentType The content type of files you wish to select. For instance, use "image/*" to select all types of images (other examples : "image/png", or "video/*, .pdf, .zip").
 	* @param {Function<File>} callback A static called if a file is selected.
 	*/
-	static SelectFileDialog(contentType, onSelected) {
+	static SelectFileDialog(contentType, multipleFiles, onSelected) {
 		return new Promise(resolve => {
 			let input = document.createElement('input');
 			input.type = 'file';
-			input.multiple = false;
+			input.multiple = multipleFiles;
 			input.accept = contentType;
 
 			input.onchange = () => {
 				let files = Array.from(input.files);
-				onSelected(files[0]);
+				if (multipleFiles) {
+					onSelected(files);
+				} else {
+					onSelected(files[0]);
+				}
 			};
 
 			input.click();

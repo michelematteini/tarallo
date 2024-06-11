@@ -81,14 +81,20 @@ html {
 }
 
 body {
+    background-color: var(--bg-color-1);
     background-image: url("../images/tarallo-bg.jpg");
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-position: center;
+    background-repeat: repeat;
+    background-size: 85rem;
     display: flex;
     flex-direction: column;
     height: 100%;
 }
+
+    body.nontiled-bg {
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center;
+    }
 
 p {
     color: var(--text-color-1);
@@ -537,12 +543,15 @@ option {
 
     .opencard-content div.monospace {
         margin-top: 0.5rem;
-        padding: 0.5rem 2.0rem;
+        padding: 3rem 1.5rem 1rem 2rem;
         border-left: solid 0.5rem var(--bg-color-4);
+        overflow-x: auto;
+        white-space: nowrap;
     }
 
         .opencard-content div.monospace .copy-btn {
             float: right;
+            margin-top: -2rem;
         }
 
             .opencard-content div.monospace .copy-btn svg {

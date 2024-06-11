@@ -93,7 +93,8 @@ class API
 		// prepare json response
 		$response["page_name"] = "BoardList";
 		$pageContent["boards"] = $boardList;
-		$pageContent["background_img_url"] = self::DEFAULT_BG;
+		$pageContent["background_url"] = self::DEFAULT_BG;
+		$pageContent["background_tiled"] = true;
 		$pageContent["display_name"] = $_SESSION["display_name"];
 		$response["page_content"] = $pageContent;
 
@@ -604,6 +605,7 @@ class API
 		self::UpdateBoardModifiedTime($request["board_id"]);
 
 		$boardData["background_url"] = $newBackgroundPath;
+		$boardData["background_tiled"] = false;
 		$boardData["background_thumb_url"] = $newBackgroundThumbPath;
 		return $boardData;
 	}
@@ -1695,6 +1697,7 @@ class API
 		$boardData["closed"] = $boardRecord["closed"];
 		$boardData["background_url"] = self::GetBackgroundUrl($boardRecord["id"], $boardRecord["background_guid"]);
 		$boardData["background_thumb_url"] = self::GetBackgroundUrl($boardRecord["id"], $boardRecord["background_guid"], true);
+		$boardData["background_tiled"] = $boardRecord["background_guid"] ? false : true; // only the default bg is tiled for now
 		$boardData["label_names"] = $boardRecord["label_names"];
 		$boardData["label_colors"] = $boardRecord["label_colors"];
 		$boardData["all_color_names"] = self::DEFAULT_LABEL_COLORS;

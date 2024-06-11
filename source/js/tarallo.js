@@ -41,9 +41,14 @@ class TaralloClient {
         TaralloServer.Call("GetCurrentPage", {}, (response) => this.LoadPage(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
     }
 
-	SetBackground(backgroundUrl) {
+	SetBackground(backgroundUrl, tiled) {
 		const backgroundImgStyle = "url(\"" + backgroundUrl + "\")";
 		document.body.style.backgroundImage = backgroundImgStyle;
+		if (tiled) {
+			document.body.classList.remove("nontiled-bg");
+		} else {
+			document.body.classList.add("nontiled-bg");
+		}
 	}
 
 	// manages the submit event for the login form
@@ -508,7 +513,7 @@ class TaralloClient {
 
 		// update background if required
 		if (pageContent["background_url"] !== undefined) {
-			this.SetBackground(pageContent["background_url"]);
+			this.SetBackground(pageContent["background_url"], pageContent["background_tiled"]);
 		}
 
 		// add needed events
@@ -760,7 +765,11 @@ class TaralloClient {
 	}
 
 	UiAddAttachment(cardID) {
-		TaralloUtils.SelectFileDialog("image/*", (file) => this.OnAttachmentSelected(file, cardID));
+		TaralloUtils.SelectFileDialog("image/*", true, (files) => {
+			for (const file of files) {
+				this.OnAttachmentSelected(file, cardID);
+			}
+		});
 	}
 
 	OnAttachmentDeleted(jsonResponseObj) {
@@ -885,7 +894,7 @@ class TaralloClient {
 	}
 
 	OnBackgroundChanged(jsonResponseObj) {
-		this.SetBackground(jsonResponseObj["background_url"]);
+		this.SetBackground(jsonResponseObj["background_url"], jsonResponseObj["background_tiled"]);
 	}
 
 	async OnBackgroundSelected(file, boardID) {
@@ -897,7 +906,7 @@ class TaralloClient {
 	}
 
 	UiChangeBackground(boardID) {
-		TaralloUtils.SelectFileDialog("image/*", (file) => this.OnBackgroundSelected(file, boardID));
+		TaralloUtils.SelectFileDialog("image/*", false, (file) => this.OnBackgroundSelected(file, boardID));
 	}
 
 	LoadShareDialog(jsonResponseObj) {
@@ -994,7 +1003,7 @@ class TaralloClient {
 	}
 
 	UiImportFromTrello() {
-		TaralloUtils.SelectFileDialog("application/json", (jsonFile) => OnTrelloExportSelected(jsonFile));
+		TaralloUtils.SelectFileDialog("application/json", false, (jsonFile) => OnTrelloExportSelected(jsonFile));
 	}
 
 	UiOpenLabelSelectionDialog() {

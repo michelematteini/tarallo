@@ -139,10 +139,9 @@
         </div>
     </template>
     <template id="tmpl-cardlist">
-        <div class="cardlist vscrollable" dbid="$id" id="cardlist-$id">
+        <div class="cardlist vscrollable" dbid="$id" id="cardlist-$id" draggable="true">
             <div class="cardlist-title">
                 <h3 contenteditable="true" spellcheck="false">$name</h3>
-                <svg class="delete-list-btn icon"><use href="#icon-trashbin" /></svg>
             </div>
             <div class="addcard-btn addcard-ui"><p>&#10010 Add a card</p></div>
             <div class="card editcard-card editcard-ui hidden" contenteditable="true" placeholder="Enter a title for this card..."></div>

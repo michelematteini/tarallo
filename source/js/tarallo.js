@@ -5,6 +5,7 @@ class TaralloClient {
 	labelNames = [];
 	labelColors = [];
 	draggedCard = null;
+	draggedCardList = null;
 	openCardCache = [];
 	coverImageObserver = null;
 
@@ -207,8 +208,6 @@ class TaralloClient {
 		const nameChangedHandler = (elem) => this.UiCardListNameChanged(cardlistData["id"], elem, cardlistElem);
 		TaralloUtils.SetEventBySelector(cardlistElem, ".cardlist-title h3", "onblur", nameChangedHandler);
 		TaralloUtils.SetEventBySelector(cardlistElem, ".cardlist-title h3", "onkeydown", (elem, event) => TaralloUtils.BlurOnEnter(event));
-		const deleteHandler = () => this.UiDeleteCardList(cardlistData["id"], cardlistElem);
-		TaralloUtils.SetEventBySelector(cardlistElem, ".cardlist-title .delete-list-btn", "onclick", deleteHandler);
 		TaralloUtils.SetEventBySelector(cardlistElem, ".addcard-btn", "onclick", () => this.UiAddNewCard(cardlistData["id"], cardlistElem));
 		TaralloUtils.SetEventBySelector(cardlistElem, ".editcard-submit-btn", "onclick", () => this.UiNewCard(cardlistData["id"], cardlistElem));
 		TaralloUtils.SetEventBySelector(cardlistElem, ".editcard-card", "onkeydown", (elem, keydownEvent) => {
@@ -218,12 +217,21 @@ class TaralloClient {
 			}
 		});
 		TaralloUtils.SetEventBySelector(cardlistElem, ".editcard-cancel-btn", "onclick", () => this.UiCancelNewCard(cardlistElem));
+
 		// drag and drop events
 		const cardlistStartElem = cardlistElem.querySelector(".cardlist-start");
 		cardlistStartElem.ondragover = (e) => e.preventDefault();
 		cardlistStartElem.ondragenter = (e) => this.UiDragCardEnter(e);
 		cardlistStartElem.ondragleave = (e) => this.UiDragCardLeave(e);
 		cardlistStartElem.ondrop = (e) => this.UiDropCard(e);
+
+		// events
+		cardlistElem.ondragstart = (e) => this.UiDragCardListStart(e);
+		cardlistElem.ondragenter = (e) => this.UiDragCardListEnter(e);
+		cardlistElem.ondragover = (e) => e.preventDefault();
+		cardlistElem.ondragleave = (e) => this.UiDragCardListLeave(e);
+		cardlistElem.ondrop = (e) => this.UiDropCardList(e);
+		cardlistElem.ondragend = (e) => this.UiDragCardListEnd(e);
 
 		return cardlistElem;
 	}
@@ -259,9 +267,9 @@ class TaralloClient {
 		// project bar drag drop events
 		const projectBar = document.getElementById("projectbar");
 		projectBar.ondragover = (e) => e.preventDefault();
-		projectBar.ondragenter = (e) => this.UiDragDeleteCardEnter(e);
-		projectBar.ondragleave = (e) => this.UiDragDeleteCardLeaver(e);
-		projectBar.ondrop = (e) => this.UiDropDeleteCard(e);
+		projectBar.ondragenter = (e) => this.UiDragDeleteEnter(e);
+		projectBar.ondragleave = (e) => this.UiDragDeleteLeave(e);
+		projectBar.ondrop = (e) => this.UiDropDelete(e);
 		// other events
 		TaralloUtils.SetEventBySelector(projectBar, "#board-title", "onblur", (elem) => this.UiBoardTitleChanged(elem));
 		TaralloUtils.SetEventBySelector(projectBar, "#board-title", "onkeydown", (elem, event) => TaralloUtils.BlurOnEnter(event));
@@ -527,6 +535,10 @@ class TaralloClient {
 	}
 
 	UiDragCardEnter(event) {
+		if (this.draggedCard === null) {
+			return; // not dragging a cardlist
+		}
+
 		event.currentTarget.classList.add("drag-target-card");
 		event.preventDefault();
 	}
@@ -535,6 +547,10 @@ class TaralloClient {
 		// discard leave events if we are just leaving a child
 		if (event.currentTarget.contains(event.relatedTarget)) {
 			return;
+		}
+
+		if (this.draggedCard === null) {
+			return; // not dragging a cardlist
 		}
 
 		event.currentTarget.classList.remove("drag-target-card");
@@ -568,6 +584,8 @@ class TaralloClient {
 		// make the call if the card has actually moved
 		if (args["moved_card_id"] != args["new_prev_card_id"]) {
 			TaralloServer.Call("MoveCard", args, (response) => this.OnCardMoved(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
+		} else {
+			this.draggedCard = null;
 		}
 	}
 
@@ -580,23 +598,30 @@ class TaralloClient {
 		this.draggedCard = null;
 	}
 
-	UiDropDeleteCard(event) {
+	UiDropDelete(event) {
 		event.currentTarget.classList.remove("drag-target-bar");
 
-		// fill call args
-		let args = [];
-		args["deleted_card_id"] = this.draggedCard.getAttribute("dbid");
-	
-		// make the call if the card has actually moved
-		TaralloServer.Call("DeleteCard", args, (response) => this.OnCardDeleted(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
+		if (this.draggedCard !== null) { // drag-delete card
+			// fill call args
+			let args = [];
+			args["deleted_card_id"] = this.draggedCard.getAttribute("dbid");
+
+			// make the call if the card has actually moved
+			TaralloServer.Call("DeleteCard", args, (response) => this.OnCardDeleted(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
+		} else if (this.draggedCardList !== null) {
+			// trigger cardlist deletion
+			const cardlistID = this.draggedCardList.getAttribute("dbid");
+			this.UiDeleteCardList(cardlistID, this.draggedCardList);
+			this.draggedCardList = null;
+		}
 	}
 
-	UiDragDeleteCardEnter(event) {
+	UiDragDeleteEnter(event) {
 		event.currentTarget.classList.add("drag-target-bar");
 		event.preventDefault();
 	}
 
-	UiDragDeleteCardLeaver(event) {
+	UiDragDeleteLeave(event) {
 		// discard leave events if we are just leaving a child
 		if (event.currentTarget.contains(event.relatedTarget)) {
 			return;
@@ -604,6 +629,85 @@ class TaralloClient {
 
 		event.currentTarget.classList.remove("drag-target-bar");
 		event.preventDefault();
+	}
+
+	UiDragCardListStart(event) {
+		if (!event.originalTarget.classList.contains("cardlist")) {
+			return; // not dragging a cardlist
+		}
+		this.draggedCardList = event.currentTarget;
+		document.getElementById("projectbar").classList.add("pb-mode-delete");
+	}
+
+	UiDragCardListEnter(event) {
+		if (this.draggedCardList === null) {
+			return; // not dragging a cardlist
+		}
+
+		event.currentTarget.classList.add("drag-target-cardlist");
+		event.preventDefault();
+	}
+
+	UiDragCardListLeave(event) {
+		// discard leave events if we are just leaving a child
+		if (event.currentTarget.contains(event.relatedTarget)) {
+			return;
+		}
+
+		if (this.draggedCardList === null) {
+			return; // not dragging a cardlist
+		}
+
+		event.currentTarget.classList.remove("drag-target-cardlist");
+		event.preventDefault();
+	}
+
+	OnCardListMoved(jsonResponseObj) {
+		if (jsonResponseObj["prev_list_id"]) {
+			// remove the cardlist from its current position and re-insert it using the previous one as reference
+			this.draggedCardList.remove();
+			const prevCardlistNode = document.getElementById("cardlist-" + jsonResponseObj["prev_list_id"]);
+			prevCardlistNode.insertAdjacentElement("afterend", this.draggedCardList);
+		} else {
+			// re-insert as the first list in the board
+			const cardlistContainerNode = this.draggedCardList.parentNode;
+			this.draggedCardList.remove();
+			cardlistContainerNode.prepend(this.draggedCardList);
+		}
+
+		this.draggedCardList = null;
+	}
+
+	UiDropCardList(event) {
+		event.currentTarget.classList.remove("drag-target-cardlist");
+
+		// check that a dragged cardlist has been saved
+		if (this.draggedCardList === null) {
+			return;
+		}
+
+		// validate movement
+		const prevListElem = event.currentTarget;
+		if (prevListElem === this.draggedCardList.previousSibling || prevListElem === this.draggedCardList) {
+			// move to the same position, skip
+			this.draggedCardList = null;
+			return;
+		}
+
+		// fill args and update the server
+		let args = [];
+		args["moved_cardlist_id"] = this.draggedCardList.getAttribute("dbid");
+		if (event.currentTarget.matches(".cardlist")) {
+			args["new_prev_cardlist_id"] = prevListElem.getAttribute("dbid");
+		} else {
+			args["new_prev_cardlist_id"] = 0;
+		}
+
+		TaralloServer.Call("MoveCardList", args, (response) => this.OnCardListMoved(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
+	}
+
+	UiDragCardListEnd(event) {
+		document.getElementById("projectbar").classList.remove("pb-mode-delete");
 	}
 
 	OnCardUpdated(jsonResponseObj) {

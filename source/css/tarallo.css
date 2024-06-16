@@ -300,6 +300,7 @@ option {
     flex-grow: 0;
     flex-shrink: 0;
     padding-bottom: 1rem;
+    transition: margin-right 500ms ease-out;
 }
 
     .cardlist h3 {
@@ -543,7 +544,7 @@ option {
 
     .opencard-content div.monospace {
         margin-top: 0.5rem;
-        padding: 3rem 1.5rem 1rem 2rem;
+        padding: 2.0rem 1.2rem 0.6rem 2rem;
         border-left: solid 0.5rem var(--bg-color-4);
         overflow-x: auto;
         white-space: nowrap;
@@ -551,7 +552,7 @@ option {
 
         .opencard-content div.monospace .copy-btn {
             float: right;
-            margin-top: -2rem;
+            margin-top: -1.5rem;
         }
 
             .opencard-content div.monospace .copy-btn svg {
@@ -706,6 +707,10 @@ button {
 
 .drag-target-card {
     margin-bottom: 3rem;
+}
+
+.drag-target-cardlist {
+    margin-right: 3rem;
 }
 
 .icon {

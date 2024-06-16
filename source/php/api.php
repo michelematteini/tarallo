@@ -441,6 +441,58 @@ class API
 		return $response;
 	}
 
+	public static function MoveCardList($request)
+	{
+		// query and validate board id
+		$boardData = self::GetBoardData($request["board_id"], self::USERTYPE_Admin);
+
+		//query and validate cardlist id
+		$cardListData = self::GetCardlistData($request["board_id"], $request["moved_cardlist_id"]);
+
+		// query and validate the prev cardlist if any, and get the next list ID
+		$nextCardListID = 0;
+		if ($request["new_prev_cardlist_id"] > 0) 
+		{
+			$cardListPrevData = self::GetCardlistData($request["board_id"], $request["new_prev_cardlist_id"]);
+			$nextCardListID = $cardListPrevData["next_list_id"];
+		}
+		else
+		{
+			// query the first cardlist, that will be the next after the moved one
+			$nextCardListQuery = "SELECT * FROM tarallo_cardlists WHERE board_id = :board_id AND prev_list_id = 0";
+			DB::setParam("board_id", $boardData['id']);
+			$nextCardListRecord = DB::fetch_row($nextCardListQuery);
+			$nextCardListID = $nextCardListRecord['id'];
+		}
+
+		// move the card list
+		try
+		{
+			DB::beginTransaction();
+
+			// update cardlist linked list
+			self::RemoveCardListFromLL($cardListData);
+			DB::setParam("prev_list_id", $request["new_prev_cardlist_id"]);
+			DB::setParam("next_list_id", $nextCardListID);
+			DB::setParam("id", $request["moved_cardlist_id"]);
+			DB::query("UPDATE tarallo_cardlists SET prev_list_id = :prev_list_id, next_list_id = :next_list_id WHERE id = :id");
+			self::AddCardListToLL($request["moved_cardlist_id"], $request["new_prev_cardlist_id"], $nextCardListID);
+
+			self::UpdateBoardModifiedTime($request["board_id"]);
+
+			DB::commit();
+		}
+		catch(Exception $e)
+		{
+			DB::rollBack();
+			throw $e;
+		}
+
+		// requery the list prepare the response
+		$response = self::GetCardlistData($request["board_id"], $request["moved_cardlist_id"]);
+		return $response;
+	}
+
 	public static function UpdateCardTitle($request)
 	{
 		// query and validate board id
@@ -1475,6 +1527,27 @@ class API
 		return $cardRecord;
 	}
 
+	private static function RemoveCardListFromLL($cardListData)
+	{
+		// re-link previous list
+		if ($cardListData["prev_list_id"] > 0)
+		{
+			$prevCardLinkQuery = "UPDATE tarallo_cardlists SET next_list_id = :next_list_id WHERE id = :prev_list_id";
+			DB::setParam("prev_list_id", $cardListData["prev_list_id"]);
+			DB::setParam("next_list_id", $cardListData["next_list_id"]);
+			DB::query($prevCardLinkQuery);
+		}
+
+		// re-link the next list
+		if ($cardListData["next_list_id"] > 0)
+		{
+			$nextCardLinkQuery = "UPDATE tarallo_cardlists SET prev_list_id = :prev_list_id WHERE id = :next_list_id";
+			DB::setParam("prev_list_id", $cardListData["prev_list_id"]);
+			DB::setParam("next_list_id", $cardListData["next_list_id"]);
+			DB::query($nextCardLinkQuery);
+		}
+	}
+
 	private static function DeleteCardListInternal($cardListData)
 	{
 		// delete the list
@@ -1482,23 +1555,7 @@ class API
 		{
 			DB::beginTransaction();
 
-			// re-link previous list
-			if ($cardListData["prev_list_id"] > 0)
-			{
-				$prevCardLinkQuery = "UPDATE tarallo_cardlists SET next_list_id = :next_list_id WHERE id = :prev_list_id";
-				DB::setParam("prev_list_id", $cardListData["prev_list_id"]);
-				DB::setParam("next_list_id", $cardListData["next_list_id"]);
-				DB::query($prevCardLinkQuery);
-			}
-
-			// re-link the next list
-			if ($cardListData["next_list_id"] > 0)
-			{
-				$nextCardLinkQuery = "UPDATE tarallo_cardlists SET prev_list_id = :prev_list_id WHERE id = :next_list_id";
-				DB::setParam("prev_list_id", $cardListData["prev_list_id"]);
-				DB::setParam("next_list_id", $cardListData["next_list_id"]);
-				DB::query($nextCardLinkQuery);
-			}
+			self::RemoveCardListFromLL($cardListData);
 
 			// delete the list
 			$deletionQuery = "DELETE FROM tarallo_cardlists WHERE id = :id";
@@ -1514,6 +1571,25 @@ class API
 		}
 
 		return $cardListData;
+	}
+
+	private static function AddCardListToLL($newListID, $prevListID, $nextListID)
+	{
+		if ($nextListID > 0)
+		{
+			// update the next card list by linking it to the new one
+			DB::setParam("new_id", $newListID);
+			DB::setParam("next_list_id", $nextListID);
+			DB::query("UPDATE tarallo_cardlists SET prev_list_id = :new_id WHERE id = :next_list_id");
+		}
+
+		if ($prevListID > 0)
+		{
+			// update the prev card by linking it to the new one
+			DB::setParam("new_id", $newListID);
+			DB::setParam("prev_list_id", $prevListID);
+			DB::query("UPDATE tarallo_cardlists SET next_list_id = :new_id WHERE id = :prev_list_id");
+		}
 	}
 
 	private static function AddNewCardListInternal($boardID, $prevListID, $name) 
@@ -1577,21 +1653,7 @@ class API
 			DB::setParam("next_list_id", $nextListID);
 			$newListID = DB::query($addCardListQuery, true);
 
-			if ($nextListID > 0)
-			{
-				// update the next card list by linking it to the new one
-				DB::setParam("new_id", $newListID);
-				DB::setParam("next_list_id", $nextListID);
-				DB::query("UPDATE tarallo_cardlists SET prev_list_id = :new_id WHERE id = :next_list_id");
-			}
-
-			if ($prevListID > 0)
-			{
-				// update the prev card by linking it to the new one
-				DB::setParam("new_id", $newListID);
-				DB::setParam("prev_list_id", $prevListID);
-				DB::query("UPDATE tarallo_cardlists SET next_list_id = :new_id WHERE id = :prev_list_id");
-			}
+			self::AddCardListToLL($newListID, $prevListID, $nextListID);
 
 			DB::commit();
 		}

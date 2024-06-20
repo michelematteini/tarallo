@@ -1,13 +1,18 @@
 const MARKUP_TITLE = "# ";
 const MARKUP_SUBTITLE = "## ";
+const MARKUP_SUBTITLE2 = "### ";
 const MARKUP_CHK_CHECKED = "[x] ";
 const MARKUP_CHK_UNCHECKED = "[ ] ";
 const MARKUP_CODE_MULTILINE = "```";
 const MARKUP_LI = "- ";
 const MARKUP_LINEBREAK = "\n";
+const MARKUP_IMAGE_START = "![";
+const MARKUP_IMAGE_SEP = "](";
+const MARKUP_IMAGE_END = ")";
+const MARKUP_IMAGE_ATTACHMENT = "#"; 
 
 // converts the db markup language to displayable html
-function ContentMarkupToHtml(markup) {
+function ContentMarkupToHtml(markup, attachmentList) {
     let html = "";
     let markupLines = markup.split(MARKUP_LINEBREAK);
     let tagStack = [];
@@ -31,6 +36,9 @@ function ContentMarkupToHtml(markup) {
         } else if (markupLine.startsWith(MARKUP_SUBTITLE)) {
             // subtitle
             lineHtml = "<h3>" + markupLine.substring(MARKUP_SUBTITLE.length) + "</h3>";
+        } else if (markupLine.startsWith(MARKUP_SUBTITLE2)) {
+            // subtitle
+            lineHtml = "<h4>" + markupLine.substring(MARKUP_SUBTITLE2.length) + "</h4>";
         } else if (markupLine.startsWith(MARKUP_LI + MARKUP_CHK_UNCHECKED)) {
             // unchecked checkbox
             if (tagStack[tagStack.length - 1] !== "</ul>") {
@@ -83,6 +91,25 @@ function ContentMarkupToHtml(markup) {
                 lineHtml += tagStack.pop();
             }
             lineHtml += markupLine.substring(MARKUP_CODE_MULTILINE.length);
+        } else if (markupLine.startsWith(MARKUP_IMAGE_START) && markupLine.endsWith(MARKUP_IMAGE_END) && markupLine.includes(MARKUP_IMAGE_SEP)) {
+            // image markup
+            const imageMarkupElems = markupLine.substring(MARKUP_TITLE.length, markupLine.length - MARKUP_IMAGE_END.length).split(MARKUP_IMAGE_SEP);
+            let imgAlt = imageMarkupElems[0];
+            let imgUrl = imageMarkupElems[1];
+            let attachmentName = "";
+            if (imageMarkupElems[1].startsWith(MARKUP_IMAGE_ATTACHMENT) && attachmentList) {
+                // refers to an attachment
+                attachmentQuery = imageMarkupElems[1].substring(MARKUP_IMAGE_ATTACHMENT.length);
+                const attachment = attachmentList.find(a => a['name'] == attachmentQuery);
+                if (attachment) {
+                    // attachment found, update the url to the one in the attachment
+                    imgUrl = attachment['url'];
+                    attachmentName = attachmentQuery;
+                }
+            }
+            // build image html
+            lineHtml += `<img class="content-img" src="${imgUrl}" alt="${imgAlt}" attachmentName="${attachmentName}">`
+
         } else if (markupLine.trim().length == 0) {
             // empty line
             if (tagStack.length > 0 && tagStack[tagStack.length - 1] !== "</div>") {
@@ -103,6 +130,14 @@ function ContentMarkupToHtml(markup) {
     }
 
     return html;
+}
+
+function GetImageMarkup(imgUrl, imgAlt, attachmentName) {
+    if (attachmentName && attachmentName.length > 0) {
+        // attachment reference: save name instead of the url
+        imgUrl = MARKUP_IMAGE_ATTACHMENT + attachmentName;
+    }
+    return MARKUP_IMAGE_START + imgAlt + MARKUP_IMAGE_SEP + imgUrl + MARKUP_IMAGE_END;
 }
 
 // converts a DOM node to the db markup language
@@ -151,6 +186,9 @@ function HtmlNodeToMarkup(htmlNode) {
             case "H3":
                 outerHTML = MARKUP_SUBTITLE + outerHTML + MARKUP_LINEBREAK;
                 break;
+            case "H4":
+                outerHTML = MARKUP_SUBTITLE2 + outerHTML + MARKUP_LINEBREAK;
+                break;
             case "LI":
                 if (childNode.classList.contains("ordered")) {
                     if (childNode.classList.contains("first")) {
@@ -185,6 +223,12 @@ function HtmlNodeToMarkup(htmlNode) {
             // tags that will be completely removed, content included
             case "SVG":
                 outerHTML = "";
+                break;
+            case "IMG":
+                imgUrl = childNode.getAttribute("src");
+                imgAlt = childNode.getAttribute("alt");
+                attachmentName = childNode.getAttribute("attachmentName");
+                outerHTML = GetImageMarkup(imgUrl, imgAlt, attachmentName) + MARKUP_LINEBREAK;
                 break;
         }
         childNode.outerHTML = outerHTML;

@@ -510,9 +510,17 @@ option {
         margin-left: -1.3rem;
     }
 
-    .opencard-content h2, .opencard-content h3, .opencard-content p {
+    .opencard-content h2, .opencard-content h3, .opencard-content h4, .opencard-content p {
         margin-left: 0;
         padding-left: 0;
+    }
+
+    .opencard-content h4 {
+        color: var(--text-color-3);
+    }
+
+    .opencard-content h4 {
+        color: var(--text-color-3);
     }
 
     .opencard-content a {
@@ -559,6 +567,11 @@ option {
                 height: 1.4rem;
                 width: 1.4rem;
             }
+
+    .opencard-content .content-img {
+        max-width: 100%;
+        border-radius: var(--border-radius);
+    }
 
 .opencard h2 {
     border-radius: var(--border-radius);
@@ -610,6 +623,13 @@ option {
 
 .opencard-attachment-desc {
     flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.opencard-attachment-desc .toolbar {
+    display:flex;
 }
 
 .opencard-attachment-btns {
@@ -657,6 +677,10 @@ button {
     .dim-btn:hover {
         background-color: var(--text-color-4);
     }
+
+.thin-btn {
+    height: 1.8rem;
+}
 
 .close-btn::after {
     content: "\d7";

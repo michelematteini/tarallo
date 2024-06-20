@@ -326,10 +326,22 @@ class TaralloClient {
 				attachmentLinkElem.querySelector(".ext").remove();
 				attachmentLinkElem.querySelector("svg").remove();
 				attachmentLinkElem.querySelector("img").setAttribute("src", thumbUrl);
+
+				// attach event to the copy markup button
+				TaralloUtils.SetEventBySelector(attachmentElem, ".copy-markup-btn", "onclick", () => {
+					const attachmentMarkup = GetImageMarkup(url, jsonAttachment['name'], jsonAttachment['name']);
+					navigator.clipboard.writeText(attachmentMarkup);
+					this.ShowInfoPopup("Copied!", "page-error");
+				});
+
 			} else {
 				// prepare attachment with icon and extension
 				attachmentLinkElem.querySelector("img").remove();
+				// remove copy markup button
+				attachmentElem.querySelector(".copy-markup-btn").remove();
 			}
+
+
 
 		} else {
 			// loading or unavaialble attachment
@@ -398,7 +410,7 @@ class TaralloClient {
 
 		// create card element
 		const openCardData = Object.assign({}, jsonResponseObj);
-		openCardData["content"] = ContentMarkupToHtml(jsonResponseObj["content"]); // decode content
+		openCardData["content"] = ContentMarkupToHtml(jsonResponseObj["content"], jsonResponseObj["attachmentList"]); // decode content
 		const openCardElem = TaralloUtils.LoadTemplate("tmpl-opencard", openCardData);
 
 		// load labels
@@ -769,12 +781,25 @@ class TaralloClient {
 		window.getSelection().removeAllRanges();
 	}
 
+	AttachmentListFromNode(attachmentListNode) {
+		let attachmentList = [];
+		for (const attachmentNode of attachmentListNode.querySelectorAll(".opencard-attachment")) {
+			const attachmentName = attachmentNode.querySelector(".attachment-name").textContent;
+			const attachmentUrl = attachmentNode.querySelector(".opencard-attachment-link").getAttribute("href");
+			attachmentList.push({ 'name': attachmentName, 'url': attachmentUrl });
+		}
+		return attachmentList;
+	}
+
 	UiCardContentChanged(contentElement, cardID) {
-		// re-convert possible html markup generate by content editing (and <br> added for easier markup editing) 
+		const cardElement = contentElement.closest(".opencard");
+
+		// re-convert possible html markup generate by content editing (and <br> added for easier markup editing)
 		const contentMarkup = ContentHtmlToMarkup(contentElement.innerHTML);
 
 		// update content area html
-		contentElement.innerHTML = ContentMarkupToHtml(contentMarkup);
+		const attachmentList = this.AttachmentListFromNode(cardElement.querySelector(".opencard-attachlist"));
+		contentElement.innerHTML = ContentMarkupToHtml(contentMarkup, attachmentList);
 		this.SetCardContentEventHandlers(contentElement);
 		window.getSelection().removeAllRanges();
 
@@ -788,7 +813,7 @@ class TaralloClient {
 
 		// post the update to the server
 		let args = [];
-		args["id"] = contentElement.closest(".opencard").getAttribute("dbid");
+		args["id"] = cardElement.getAttribute("dbid");
 		args["content"] = contentMarkup;
 		TaralloServer.Call("UpdateCardContent", args, (response) => this.OnCardUpdated(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
 	}

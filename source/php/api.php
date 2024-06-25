@@ -579,7 +579,7 @@ class API
 		$fileInfo = pathinfo($request["filename"]);
 		$extension = isset($fileInfo["extension"]) ? strtolower($fileInfo["extension"]) : "bin";
 		$guid = uniqid("", true);
-		DB::setParam("name", $fileInfo["filename"]);
+		DB::setParam("name", self::CleanAttachmentName($fileInfo["filename"]));
 		DB::setParam("guid", $guid);
 		DB::setParam("extension", $extension);
 		DB::setParam("card_id", $request["card_id"]);
@@ -689,6 +689,29 @@ class API
 		$response = self::AttachmentRecordToData($attachmentRecord);
 		$cardRecord = self::GetCardData($attachmentRecord["board_id"], $attachmentRecord["card_id"]);
 		$response["card"] = self::CardRecordToData($cardRecord);
+		return $response;
+	}
+
+	public static function UpdateAttachmentName($request)
+	{
+		// query and validate board id
+		$boardData = self::GetBoardData($request["board_id"], self::USERTYPE_Member);
+
+		// query attachment
+		$attachmentRecord = self::GetAttachmentRecord($request["board_id"], $request["id"]);
+
+		// update attachment name
+		$filteredName = self::CleanAttachmentName($request["name"]);
+
+		DB::setParam("id", $attachmentRecord["id"]);
+		DB::setParam("name", $filteredName);
+		DB::query("UPDATE tarallo_attachments SET name = :name WHERE id = :id");
+
+		self::UpdateBoardModifiedTime($request["board_id"]);
+
+		// return the updated attachment data
+		$attachmentRecord["name"] = $filteredName;
+		$response = self::AttachmentRecordToData($attachmentRecord);
 		return $response;
 	}
 
@@ -1969,6 +1992,11 @@ class API
 	private static function CleanBoardTitle($title)
 	{
 		return substr($title, 0, 64);
+	}
+
+	private static function CleanAttachmentName($name)
+	{
+		return substr($name, 0, 100);
 	}
 
 	private static function CleanLabelName($name)

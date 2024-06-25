@@ -619,6 +619,9 @@ option {
 
     .opencard-attachment .attachment-name {
         font-weight: bold;
+        margin-right: 0.5rem;
+        padding: 0.3rem;
+        border-radius: var(--border-radius);
     }
 
 .opencard-attachment-desc {

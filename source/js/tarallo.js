@@ -205,6 +205,7 @@ class TaralloClient {
 	LoadCardList(cardlistData) {
 		const cardlistElem = TaralloUtils.LoadTemplate("tmpl-cardlist", cardlistData);
 		// events
+		TaralloUtils.SetEventBySelector(cardlistElem, ".cardlist-title h3", "onfocus", () => this.UiCardListNameEditStart(cardlistElem));
 		const nameChangedHandler = (elem) => this.UiCardListNameChanged(cardlistData["id"], elem, cardlistElem);
 		TaralloUtils.SetEventBySelector(cardlistElem, ".cardlist-title h3", "onblur", nameChangedHandler);
 		TaralloUtils.SetEventBySelector(cardlistElem, ".cardlist-title h3", "onkeydown", (elem, event) => TaralloUtils.BlurOnEnter(event));
@@ -320,6 +321,8 @@ class TaralloClient {
 			attachmentLinkElem.setAttribute("href", url);
 			attachmentElem.querySelector(".loader").remove();
 			TaralloUtils.SetEventBySelector(attachmentElem, ".opencard-attachment-delete-btn", "onclick", () => this.UiDeleteAttachment(jsonAttachment["id"], attachmentElem));
+			TaralloUtils.SetEventBySelector(attachmentElem, ".attachment-name", "onblur", (elem) => this.UiAttachmentNameChanged(elem, jsonAttachment["id"]));
+			TaralloUtils.SetEventBySelector(attachmentElem, ".attachment-name", "onkeydown", (elem, event) => TaralloUtils.BlurOnEnter(event));
 
 			if (thumbUrl) {
 				// prepare attachment with a preview
@@ -329,7 +332,8 @@ class TaralloClient {
 
 				// attach event to the copy markup button
 				TaralloUtils.SetEventBySelector(attachmentElem, ".copy-markup-btn", "onclick", () => {
-					const attachmentMarkup = GetImageMarkup(url, jsonAttachment['name'], jsonAttachment['name']);
+					const attachmentName = attachmentElem.querySelector(".attachment-name").textContent;
+					const attachmentMarkup = GetImageMarkup(url, attachmentName, attachmentName);
 					navigator.clipboard.writeText(attachmentMarkup);
 					this.ShowInfoPopup("Copied!", "page-error");
 				});
@@ -340,8 +344,6 @@ class TaralloClient {
 				// remove copy markup button
 				attachmentElem.querySelector(".copy-markup-btn").remove();
 			}
-
-
 
 		} else {
 			// loading or unavaialble attachment
@@ -915,12 +917,33 @@ class TaralloClient {
 		TaralloServer.Call("DeleteAttachment", args, (response) => this.OnAttachmentDeleted(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
 	}
 
+	OnAttachmentUpdated(jsonResponseObj) {
+		// update the attachment name
+		const attachmentElem = document.getElementById("attachment-" + jsonResponseObj["id"]);
+		attachmentElem.querySelector(".attachment-name").textContent = jsonResponseObj["name"];
+	}
+
+	UiAttachmentNameChanged(nameElem, attachmentID) {
+		let args = [];
+		args["id"] = attachmentID;
+		args["name"] = nameElem.textContent;
+		TaralloServer.Call("UpdateAttachmentName", args, (response) => this.OnAttachmentUpdated(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
+	}
+
 	OnCardListUpdated(jsonResponseObj) {
 		const cardListElem = document.getElementById("cardlist-" + jsonResponseObj["id"]);
 		cardListElem.querySelector("h3").textContent = jsonResponseObj["name"];
 	}
 
+	UiCardListNameEditStart(cardlistElem) {
+		// disable cardlist dragging to allow title text selection
+		cardlistElem.setAttribute("draggable", "false");
+	}
+
 	UiCardListNameChanged(cardlistID, nameElem, cardlistElem) {
+		// re-enable cardlist dragging
+		cardlistElem.setAttribute("draggable", "true");
+
 		if (cardlistElem.classList.contains("waiting-deletion")) {
 			return; // avoid being triggered while deleting a cardlist (can happen on mobile)
 		}
@@ -1329,9 +1352,25 @@ class TaralloClient {
 				item.getAsString((pastedText) => {
 					const selection = window.getSelection();
 					if (selection.rangeCount) {
+						// delete selected
 						selection.deleteFromDocument();
 						const curSelection = selection.getRangeAt(0);
-						curSelection.insertNode(document.createTextNode(pastedText));
+
+						// check where the text is pasted
+						const destElem = selection.anchorNode.parentElement;
+						if (destElem.classList.contains("opencard-content")) {
+							// pasting as card content, divide in lines
+							const pastedLines = pastedText.split("\n");
+							for (const textLine of pastedLines) {
+								curSelection.insertNode(document.createElement("BR"));
+								curSelection.insertNode(document.createTextNode(textLine));
+								curSelection.setStart(curSelection.endContainer, curSelection.endOffset);
+							}
+						} else {
+							// pasting as simple text otherwise
+							curSelection.insertNode(document.createTextNode(pastedText));
+						}
+
 						curSelection.setStart(curSelection.endContainer, curSelection.endOffset);
 					}
 				});

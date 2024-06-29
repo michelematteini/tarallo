@@ -466,6 +466,9 @@ class TaralloClient {
 
 		TaralloUtils.RemoveClassFromAll(cardlistNode, ".addcard-ui", "hidden");
 		TaralloUtils.AddClassToAll(cardlistNode, ".editcard-ui", "hidden");
+
+		// re-enable cardlist dragging
+		cardlistNode.setAttribute("draggable", "true");
 	}
 
 	UiAddNewCard(cardlistID, cardlistNode) {
@@ -475,6 +478,9 @@ class TaralloClient {
 				this.UiCancelNewCard(cardlist);
 			}
 		}
+
+		// disable cardlist dragging to allow card text selection
+		cardlistNode.setAttribute("draggable", "false");
 
 		// enable editing of a new card
 		TaralloUtils.AddClassToAll(cardlistNode, ".addcard-ui", "hidden");
@@ -936,6 +942,9 @@ class TaralloClient {
 	}
 
 	UiCardListNameEditStart(cardlistElem) {
+		// disable add card UI for this cardlist if any
+		this.UiCancelNewCard(cardlistElem);
+
 		// disable cardlist dragging to allow title text selection
 		cardlistElem.setAttribute("draggable", "false");
 	}

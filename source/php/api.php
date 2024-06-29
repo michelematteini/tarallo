@@ -242,10 +242,36 @@ class API
 			self::LogoutInternal();
 		}
 
+		// validate username
 		if (strlen($request["username"]) < 5)
 		{
 			http_response_code(400);
-			exit("Invalid username!");
+			exit("Username is too short!");
+		}
+		if (!preg_match("/^[A-Za-z0-9]*$/", $request["username"]))
+		{
+			http_response_code(400);
+			exit("Username must be alpha-numeric and cannot contain spaces!");
+		}
+		
+		// validate display name
+		$cleanDisplayName = trim($request["display_name"]);
+		if (strlen($cleanDisplayName) < 3)
+		{
+			http_response_code(400);
+			exit("Display name is too short!");
+		}
+		if (!preg_match("/^[A-Za-z0-9\s]*$/", $cleanDisplayName))
+		{
+			http_response_code(400);
+			exit("Display name must be alpha-numeric.");
+		}
+
+		// validate password
+		if (strlen($request["password"]) < 5)
+		{
+			http_response_code(400);
+			exit("The password must be at least 5 char long!");
 		}
 
 		// check if the specified username already exists
@@ -265,7 +291,7 @@ class API
 		$addUserQuery .= " VALUES(:username, :password, :display_name, :register_time, 0)";
 		DB::setParam("username", $request["username"]);
 		DB::setParam("password", $passwordHash);
-		DB::setParam("display_name", $request["display_name"]);
+		DB::setParam("display_name", $cleanDisplayName);
 		DB::setParam("register_time", time());
 		$userID = DB::query($addUserQuery, true);
 

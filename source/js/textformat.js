@@ -20,12 +20,17 @@ function ContentMarkupToHtml(markup, attachmentList) {
     // foreach markup line
     for (let i = 0; i < markupLines.length; i++) {
 
-        // === convert inline tokens
         let markupLine = markupLines[i];
-        markupLine = markupLine.replaceAll(/\*\*(.*?)\*\*/g, "<b>$1</b>"); // bold
-        markupLine = markupLine.replaceAll(/`([^`]+?)`/g, "<span class=\"monospace\">$1</span>"); // monospace
-        const mouseDownJS = "window.open(\"$1\", \"_blank\"); event.preventDefault();";
-        markupLine = markupLine.replaceAll(/(https?:\/\/.*?)(\s|$)/g, "<a onmousedown='" + mouseDownJS + "' href='' contentEditable='false'>$1</a>$2"); // links
+
+        const isImage = markupLine.startsWith(MARKUP_IMAGE_START) && markupLine.endsWith(MARKUP_IMAGE_END) && markupLine.includes(MARKUP_IMAGE_SEP);
+
+        // === convert inline tokens
+        if (!isImage) {
+            markupLine = markupLine.replaceAll(/\*\*(.*?)\*\*/g, "<b>$1</b>"); // bold
+            markupLine = markupLine.replaceAll(/`([^`]+?)`/g, "<span class=\"monospace\">$1</span>"); // monospace
+            const mouseDownJS = "window.open(\"$1\", \"_blank\"); event.preventDefault();";
+            markupLine = markupLine.replaceAll(/(https?:\/\/.*?)(\s|$)/g, "<a onmousedown='" + mouseDownJS + "' href='' contentEditable='false'>$1</a>$2"); // links
+        }
 
         // === convert line start tokens
         let lineHtml = "";
@@ -91,7 +96,7 @@ function ContentMarkupToHtml(markup, attachmentList) {
                 lineHtml += tagStack.pop();
             }
             lineHtml += markupLine.substring(MARKUP_CODE_MULTILINE.length);
-        } else if (markupLine.startsWith(MARKUP_IMAGE_START) && markupLine.endsWith(MARKUP_IMAGE_END) && markupLine.includes(MARKUP_IMAGE_SEP)) {
+        } else if (isImage) {
             // image markup
             const imageMarkupElems = markupLine.substring(MARKUP_TITLE.length, markupLine.length - MARKUP_IMAGE_END.length).split(MARKUP_IMAGE_SEP);
             let imgAlt = imageMarkupElems[0];

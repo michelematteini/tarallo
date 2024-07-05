@@ -451,6 +451,14 @@ class TaralloClient {
 		TaralloUtils.SetEventBySelector(openCardElem, ".opencard-lock-btn", "onclick", (elem) => this.UiCardContentLock(elem, openCardElem));
 		this.SetCardContentEventHandlers(openCardElem.querySelector(".opencard-content"));
 
+		// drag drop files over a card events
+		const cardElem = openCardElem.querySelector(".opencard");
+		cardElem.ondragover = (e) => this.UiDragOverAttachment(e);
+		cardElem.ondragenter = (e) => this.UiDragAttachmentEnter(e);
+		cardElem.ondragleave = (e) => this.UiDragAttachmentLeave(e);
+		cardElem.ondrop = (e) => this.UiDropAttachment(e);
+
+		// append the open card to the page
 		const contentElem = TaralloUtils.GetContentElement();
 		contentElem.appendChild(openCardElem);
 	}
@@ -871,6 +879,47 @@ class TaralloClient {
 			btnElem.classList.add("locked");
 			contentElem.setAttribute("contenteditable", "false");
 		}
+	}
+
+	UiDragOverAttachment(event) {
+		event.preventDefault();
+	}
+
+	UiDragAttachmentEnter(event) {
+		event.currentTarget.classList.add("drag-target-attachment");
+		event.preventDefault();
+	}
+
+	UiDragAttachmentLeave(event) {
+		// discard leave events if we are just leaving a child
+		if (event.currentTarget.contains(event.relatedTarget)) {
+			return;
+		}
+
+		event.currentTarget.classList.remove("drag-target-attachment");
+		event.preventDefault();
+    }
+
+	UiDropAttachment(event) {
+		event.currentTarget.classList.remove("drag-target-attachment");
+		const cardID = event.currentTarget.getAttribute('dbid');
+
+		if (!event.dataTransfer.items) {
+			return; // nothing dropped?
+		}
+
+		// iterate and upload dropped files 
+		for (const item of event.dataTransfer.items) {
+			// if dropped items aren't files, reject them
+			if (item.kind !== "file") {
+				continue;
+			}
+			// upload the file as attachment
+			const file = item.getAsFile();
+			this.OnAttachmentSelected(file, cardID);
+		}
+
+		event.preventDefault();
 	}
 
 	RemoveUiAttachmentPlaceholder() {

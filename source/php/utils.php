@@ -58,16 +58,14 @@ class Utils {
         rmdir($dirPath);
     }
 
-    public static function OutputFile($filePath, $contentType, $downloadFileName = "") 
+    public static function OutputFile($filePath, $contentType, $fileName, $isDownload = false) 
     {
         $absFilePath = FTPDir($filePath);
         if (file_exists($absFilePath)) {
             header("Content-Type: $contentType");
             header('Content-Length: ' . filesize($absFilePath));
-            if (strlen($downloadFileName) !== 0)
-            {
-                header("Content-Disposition: attachment; filename=\"{$downloadFileName}\"");
-            }
+            $contentDisp = $isDownload ? "attachment" : "inline";
+            header("Content-Disposition: {$contentDisp}; filename=\"{$fileName}\"");
             readfile($absFilePath);
             exit;
         }

@@ -758,14 +758,12 @@ class API
 		{
 			$attachmentPath = self::GetAttachmentFilePathFromRecord($attachmentRecord);
 		}
+
 		$mimeType = Utils::MimeTypes[$attachmentRecord["extension"]];
-		$downloadName = "";
-		if (stripos($mimeType, "image") !== 0)
-		{
-			// output a download with a filename if the content is not an image
-			$downloadName = $attachmentRecord["name"] . "." . $attachmentRecord["extension"];
-		}
-		Utils::OutputFile($attachmentPath, $mimeType, $downloadName);
+		$downloadName = $attachmentRecord["name"] . "." . $attachmentRecord["extension"];
+		$isImage = stripos($mimeType, "image") === 0;
+
+		Utils::OutputFile($attachmentPath, $mimeType, $downloadName, !$isImage);
 	}
 
 	public static function UpdateCardListName($request)

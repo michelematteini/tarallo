@@ -493,6 +493,10 @@ option {
             height: 1.4rem;
         }
 
+    .opencard.drag-target-attachment {
+        outline: 0.2rem solid var(--accent-color-1);
+    }
+
 .opencard-content {
     padding: 0.5rem;
     font-size: 0.9rem;
@@ -753,6 +757,10 @@ button {
 .dim-icon {
     fill: var(--bg-color-4);
     stroke: var(--bg-color-4);
+}
+
+.dim-text {
+    color: var(--bg-color-4);
 }
 
 #projectbar .bin-icon {

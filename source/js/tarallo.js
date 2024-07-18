@@ -104,6 +104,12 @@ class TaralloClient {
 		const formNode = document.querySelector("#login-form");
 		TaralloUtils.SetEventBySelector(formNode, "#login-btn", "onclick", () => this.UiLogin());
 		TaralloUtils.SetEventBySelector(formNode, "#register-page-btn", "onclick", () => this.LoadRegisterPage());
+
+		// add instance message if any
+		if (contentObj["instance_msg"]) {
+			const instanceMsgElem = TaralloUtils.LoadTemplate("tmpl-instance-msg", contentObj)
+			TaralloUtils.GetContentElement().prepend(instanceMsgElem);
+		}
 	}
 
 	LoadRegisterPage() {
@@ -254,7 +260,6 @@ class TaralloClient {
 		for (const cardlist of TaralloUtils.DBLinkedListIterator(contentObj["cardlists"], "id", "prev_list_id", "next_list_id")) {
 			// create cardlist
 			const newCardlistElem = this.LoadCardList(cardlist);
-			boardElem.insertBefore(newCardlistElem, newCardlistBtn);
 
 			// create owned cards
 			const cardlistID = cardlist["id"];
@@ -263,6 +268,9 @@ class TaralloClient {
 				// append the new card to the list
 				newCardlistElem.appendChild(newCardElem);
 			}
+
+			// add cardlist to the board
+			boardElem.insertBefore(newCardlistElem, newCardlistBtn);
 		}
 
 		// project bar drag drop events

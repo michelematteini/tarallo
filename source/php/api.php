@@ -64,6 +64,7 @@ class API
 			$response["page_name"] = "Login";
 			$response["page_content"] = array();
 			$response["page_content"]["background_img_url"] = self::DEFAULT_BG;
+			$response["page_content"]["instance_msg"] = self::GetDBSetting("instance_msg");
 		}
 
 		return $response;

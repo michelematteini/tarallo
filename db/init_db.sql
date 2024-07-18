@@ -108,7 +108,7 @@ CREATE TABLE `tarallo_users` (
 CREATE TABLE `tarallo_settings` (
   `id` int NOT NULL,
   `name` varchar(32) NOT NULL,
-  `value` varchar(255) NOT NULL,
+  `value` varchar(512) NOT NULL,
   `client_access` int NOT NULL
 );
 
@@ -117,9 +117,10 @@ CREATE TABLE `tarallo_settings` (
 --
 
 INSERT INTO `tarallo_settings` (`id`, `name`, `value`, `client_access`) VALUES
-(1, 'db_version', '1-1', 0),
+(1, 'db_version', '1-3', 0),
 (2, 'registration_enabled', '1', 0),
-(3, 'attachment_max_size_kb', '2048', 1);
+(3, 'attachment_max_size_kb', '2048', 1),
+(4, 'instance_msg', '', 1);
 
 --
 -- Indexes for dumped tables

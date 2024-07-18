@@ -154,6 +154,14 @@ option {
     background-color: var(--bg-color-1);
 }
 
+a, a:visited {
+    color: var(--bnt-color-1);
+}
+
+a:hover {
+    color: var(--bnt-active-color-1);
+}
+
 .hidden {
     display: none;
 }
@@ -379,6 +387,10 @@ option {
     bottom: 0;
 }
 
+.popup.persistent {
+    opacity: 1;
+}
+
 .popup.popup-animate {
     animation: popup-anim 6s linear;
 }
@@ -525,14 +537,6 @@ option {
 
     .opencard-content h4 {
         color: var(--text-color-3);
-    }
-
-    .opencard-content a {
-        color: var(--bnt-color-1);
-    }
-
-    .opencard-content a:hover {
-        color: var(--bnt-active-color-1);
     }
 
     .opencard-content b {
@@ -945,3 +949,8 @@ button {
     #share-dialog-list .share-dialog-item {
         flex: 0 1 10rem;
     }
+
+#instance-message {
+    margin: 1rem auto 0 auto;
+    background-color: var(--accent-color-1);
+}

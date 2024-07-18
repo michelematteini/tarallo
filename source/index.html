@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" sizes="64x64" href="images/favicon-large.png">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
     <link href="css/tarallo.css" rel="stylesheet" type="text/css" />
-    <template id="tmpl-login">
+    <template id="tmpl-login">        
         <div class="centered-container">
             <div id="login-form" class="centered-dialog dialog">
                 <label>Username</label>
@@ -19,6 +19,9 @@
                 <p id="login-error" class="popup separator"></p>
             </div>
         </div>
+    </template>
+    <template id="tmpl-instance-msg">
+        <div id="instance-message" class="popup persistent">$instance_msg</div>
     </template>
     <template id="tmpl-register">
         <div class="centered-container">

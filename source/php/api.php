@@ -30,6 +30,9 @@ class API
 	const DEFAULT_BG = "images/tarallo-bg.jpg";
 	const DEFAULT_BOARDTILE_BG = "images/boardtile-bg.jpg";
 	const DEFAULT_LABEL_COLORS = array("red", "orange", "yellow", "green", "cyan", "azure", "blue", "purple", "pink", "grey");
+	const MAX_LABEL_COUNT = 24;
+	const MAX_LABEL_FIELD_LEN = 400;
+	const TEMP_EXPORT_PATH = "temp/export.zip";
 
 	// user types for the permission table
 	const USERTYPE_Owner = 0; // full-control of the board
@@ -60,11 +63,16 @@ class API
 		} 
 		else 
 		{
-			// login page data
+			$settings = self::GetDBSettings();
+
+			// load and apply db updates if any
+			self::ApplyDBUpdates($settings["db_version"]);
+
+			// prepare login page data
 			$response["page_name"] = "Login";
 			$response["page_content"] = array();
 			$response["page_content"]["background_img_url"] = self::DEFAULT_BG;
-			$response["page_content"]["instance_msg"] = self::GetDBSetting("instance_msg");
+			$response["page_content"]["instance_msg"] = $settings["instance_msg"];
 		}
 
 		return $response;
@@ -78,6 +86,7 @@ class API
 		$boardsQuery = "SELECT tarallo_boards.*, tarallo_permissions.user_type";
 		$boardsQuery .= " FROM tarallo_boards INNER JOIN tarallo_permissions ON tarallo_boards.id = tarallo_permissions.board_id";
 		$boardsQuery .= " WHERE tarallo_permissions.user_id  = :user_id";
+		$boardsQuery .= " ORDER BY last_modified_time DESC";
 		
 		DB::setParam("user_id", $_SESSION["user_id"]); 
 		$results = DB::fetch_table($boardsQuery);
@@ -945,8 +954,177 @@ class API
 		return $boardData;
 	}
 
+	public static function ImportBoard($request)
+	{
+		if (!self::GetDBSetting("board_import_enabled"))
+		{
+			http_response_code(403);
+			exit("Board import is disabled on this server!");
+		}
+
+		if (!self::IsUserLoggedIn())
+		{
+			http_response_code(403);
+			exit("Cannot create a new board without being logged in.");
+		}
+
+		// open the zip archive from the export
+		$exportPath = self::TEMP_EXPORT_PATH;
+		$exportZip = new ZipArchive();		
+		if (!$exportZip->open(FTPDir($exportPath)))
+		{
+			http_response_code(500);
+			exit("Import Failed: export zip not found.");
+		}
+		
+		// unzip db content
+		$boardExportData = array();
+		{
+			$dbExportJson = $exportZip->getFromName("db.json");
+			if (!$dbExportJson)
+			{
+				http_response_code(400);
+				exit("Import Failed: invalid export file.");
+			}
+			$boardExportData = json_decode($dbExportJson, true);
+		}
+
+		// build new db indices
+		$nextCardlistID = DB::query_one_result("SELECT MAX(id) FROM tarallo_cardlists") + 1;
+		$cardlistIndex = Utils::RebuildDBIndex($boardExportData["cardlists"], "id", $nextCardlistID);
+		$cardlistIndex[0] = 0; // unlinked cardlist entry
+		$nextCardID = DB::query_one_result("SELECT MAX(id) FROM tarallo_cards") + 1;
+		$cardIndex = Utils::RebuildDBIndex($boardExportData["cards"], "id", $nextCardID);
+		$cardIndex[0] = 0; // no prev card id entry
+		$nextAttachmentID = DB::query_one_result("SELECT MAX(id) FROM tarallo_attachments") + 1;
+		$attachIndex = Utils::RebuildDBIndex($boardExportData["attachments"], "id", $nextAttachmentID);
+		$attachIndex[0] = 0; // card without cover attachment
+
+		try
+		{
+			DB::beginTransaction();
+
+			// create a new board with the exported data
+			$newBoardID = self::CreateNewBoardInternal($boardExportData["title"], $boardExportData["label_names"], $boardExportData["label_colors"], $boardExportData["background_guid"]);
+
+			// add cardlists to db
+			{
+				// prepare a query to add all the cardlists
+				$addCardlistsQuery = "INSERT INTO tarallo_cardlists (id, board_id, name, prev_list_id, next_list_id) VALUES ";
+				$cardlistPlaceholders = "(?, ?, ?, ?, ?)";
+				// foreach cardlist
+				for ($i = 0; $i < count($boardExportData["cardlists"]); $i++) 
+				{
+					$curList = $boardExportData["cardlists"][$i];
+
+					// add query parameters
+					DB::$qparams[] = $cardlistIndex[$curList["id"]]; // id
+					DB::$qparams[] = $newBoardID;// board_id
+					DB::$qparams[] = $curList["name"]; // name
+					DB::$qparams[] = $cardlistIndex[$curList["prev_list_id"]]; // prev_list_id
+					DB::$qparams[] = $cardlistIndex[$curList["next_list_id"]]; // next_list_id
+				
+					// add query format
+					$addCardlistsQuery .= ($i > 0 ? ", " : "") . $cardlistPlaceholders;
+				}
+				// add all the cards for this list to the DB
+				DB::query($addCardlistsQuery);
+			}
+
+			// add cards to db
+			{
+				// prepare a query to add all the cards
+				$addCardsQuery = "INSERT INTO tarallo_cards (id, title, content, prev_card_id, next_card_id, cardlist_id, board_id, cover_attachment_id, last_moved_time, label_mask, flags) VALUES ";
+				$cardPlaceholders = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				// foreach card
+				for ($i = 0; $i < count($boardExportData["cards"]); $i++) 
+				{
+					$curCard = $boardExportData["cards"][$i];
+
+					// add query parameters
+					DB::$qparams[] = $cardIndex[$curCard["id"]]; // id
+					DB::$qparams[] = $curCard["title"]; // title
+					DB::$qparams[] = $curCard["content"]; // content
+					DB::$qparams[] = $cardIndex[$curCard["prev_card_id"]]; // prev_card_id
+					DB::$qparams[] = $cardIndex[$curCard["next_card_id"]];// next_card_id
+					DB::$qparams[] = $cardlistIndex[$curCard["cardlist_id"]];// cardlist_id
+					DB::$qparams[] = $newBoardID;// board_id
+					DB::$qparams[] = $attachIndex[$curCard["cover_attachment_id"]];// cover_attachment_id
+					DB::$qparams[] = $curCard["last_moved_time"]; // last_moved_time
+					DB::$qparams[] = $curCard["label_mask"];// label_mask
+					DB::$qparams[] = $curCard["flags"];// flags
+
+					// add query format
+					$addCardsQuery .= ($i > 0 ? ", " : "") . $cardPlaceholders;
+				}
+				// add all the cards for this list to the DB
+				DB::query($addCardsQuery);
+			}
+
+			// add attachments
+			{
+				// prepare a query to add all the attachments
+				$addAttachementsQuery = "INSERT INTO tarallo_attachments (id, name, guid, extension, card_id, board_id) VALUES ";
+				$attachmentsPlaceholders = "(?, ?, ?, ?, ?, ?)";
+				// foreach cardlist
+				for ($i = 0; $i < count($boardExportData["attachments"]); $i++) 
+				{
+					$curAttachment = $boardExportData["attachments"][$i];
+
+					// add query parameters
+					DB::$qparams[] = $attachIndex[$curAttachment["id"]]; // id
+					DB::$qparams[] = $curAttachment["name"]; // name
+					DB::$qparams[] = $curAttachment["guid"]; // guid
+					DB::$qparams[] = $curAttachment["extension"]; // extension
+					DB::$qparams[] = $cardIndex[$curAttachment["card_id"]]; // card_id
+					DB::$qparams[] = $newBoardID;// board_id
+				
+					// add query format
+					$addAttachementsQuery .= ($i > 0 ? ", " : "") . $attachmentsPlaceholders;
+				}
+				// add all the cards for this list to the DB
+				DB::query($addAttachementsQuery);
+			}
+
+			// unzip board content to board/ folder
+			$boardFolder = self::GetBoardContentDir($newBoardID);
+			if (!$exportZip->extractTo(FTPDir($boardFolder)))
+			{
+				DB::rollBack();
+				http_response_code(500);
+				exit("Import Failed: extraction failed.");
+			}
+			if (!$exportZip->close())
+			{
+				DB::rollBack();
+				http_response_code(500);
+				exit("Import failed: cannot close zip file.");
+			}
+
+			// clean temp files
+			Utils::DeleteFile($boardFolder . "db.json");
+			Utils::DeleteFile($exportPath);
+
+			DB::commit();
+		}
+		catch(Exception $e)
+		{
+			DB::rollBack();
+			throw $e;
+		}
+
+		// re-query and return the new board data
+		return self::GetBoardData($newBoardID);
+	}
+
 	public static function ImportFromTrello($request) 
 	{
+		if (!self::GetDBSetting("trello_import_enabled"))
+		{
+			http_response_code(403);
+			exit("Importing boards from Trello is disabled on this server!");
+		}
+
 		if (!self::IsUserLoggedIn())
 		{
 			http_response_code(403);
@@ -958,7 +1136,7 @@ class API
 
 		$trello = $request["trello_export"];
 
-		// create the new board if any
+		// create the new board
 		$newBoardID = self::CreateNewBoardInternal($trello["name"]);
 
 		// add labels to the board
@@ -1132,6 +1310,13 @@ class API
 		$labelIndex = array_search("", $boardLabelNames);
 		if ($labelIndex === false)
 		{
+			// check that the number of label is not exceeded
+			if ($labelCount >= self::MAX_LABEL_COUNT)
+			{
+				http_response_code(400);
+				exit("Cannot create any more labels!");
+			}
+
 			// no empty slot, add one
 			$labelIndex = $labelCount;
 			$boardLabelNames[] = "";
@@ -1379,14 +1564,157 @@ class API
 		return $response;
 	}
 
+	public static function ExportBoard($request)
+	{
+		if (!self::GetDBSetting("board_export_enabled"))
+		{
+			http_response_code(403);
+			exit("Board export is disabled on this server!");
+		}
+
+		// query and validate board id and access level
+		$boardData = self::GetBoardData($request["board_id"], self::USERTYPE_Admin);
+		$boardID = $boardData["id"];
+
+		// create a zip for the export
+		$exportPath = self::TEMP_EXPORT_PATH;
+		Utils::PrepareDir($exportPath);
+		$exportZip = new ZipArchive();
+
+		if (!$exportZip->open(FTPDir($exportPath), ZipArchive::CREATE | ZipArchive::OVERWRITE))
+		{
+			http_response_code(500);
+			exit("Export failed: zip creation error.");
+		}
+
+		// create a board data struct
+		DB::setParam("id", $boardID);
+		$boardExportData = DB::fetch_row("SELECT * FROM tarallo_boards WHERE id = :id");
+		DB::setParam("board_id", $boardID);
+		$boardExportData["cardlists"] = DB::fetch_table("SELECT * FROM tarallo_cardlists WHERE board_id = :board_id");
+		DB::setParam("board_id", $boardID);
+		$boardExportData["cards"] = DB::fetch_table("SELECT * FROM tarallo_cards WHERE board_id = :board_id");
+		DB::setParam("board_id", $boardID);
+		$boardExportData["attachments"] = DB::fetch_table("SELECT * FROM tarallo_attachments WHERE board_id = :board_id");
+		$boardExportData["db_version"] = self::GetDBSetting("db_version");
+
+		// add the data struct to the zip as json
+		$exportDataJsonPath = "temp/export.json";
+		Utils::WriteToFile($exportDataJsonPath, json_encode($boardExportData));
+		if (!$exportZip->addFile(FTPDir($exportDataJsonPath), "db.json"))
+		{
+			http_response_code(500);
+			exit("Export failed: failed to add db data.");
+		}
+
+		// add the whole board folder (attachments + background)
+		$boardBaseDir = FTPDir("boards/{$boardID}/");
+		$dirIterator = new RecursiveDirectoryIterator($boardBaseDir);
+		$fileIterator = new RecursiveIteratorIterator($dirIterator, RecursiveIteratorIterator::SELF_FIRST);
+		
+		foreach ($fileIterator as $file) {
+			if ($file->isDir())
+				continue;
+
+			$absFilePath = $file->getRealPath();
+			$zippedFilePath = str_replace($boardBaseDir, '', $absFilePath);
+			if (!$exportZip->addFile($absFilePath, $zippedFilePath))
+			{
+				http_response_code(500);
+				exit("Export failed: failed to add attachments.");
+			}
+		}
+
+		// finalize the zip file
+		if ($exportZip->status != ZIPARCHIVE::ER_OK)
+		{
+			http_response_code(500);
+			exit("Export failed: zip status error.");
+		}
+		if (!$exportZip->close())
+		{
+			http_response_code(500);
+			exit("Export failed: cannot close zip file.");
+		}
+
+		//output zip file as download
+		$downloadName =  "export - " . strtolower($boardData["title"]) . " " . date("Y-m-d H-i-s")  . ".zip";
+		Utils::OutputFile($exportPath, Utils::MimeTypes["zip"], $downloadName, true);
+	}
+
+	public static function UploadChunk($request)
+	{
+		if (!self::IsUserLoggedIn())
+		{
+			http_response_code(403);
+			exit("Cannot upload data without being logged in.");
+		}
+
+		// validate context
+		switch ($request["context"])
+		{
+			case "ImportBoard":
+				if (!self::GetDBSetting("board_import_enabled"))
+				{
+					http_response_code(403);
+					exit("Board import is disabled on this server!");
+				}
+				$destFilePath = self::TEMP_EXPORT_PATH;
+				break;
+			default:
+				http_response_code(400);
+				exit("Invalid context.");
+		}
+
+		// decode content and write to file
+		$writeFlags = $request["chunkIndex"] === 0 ? 0 : FILE_APPEND; // append if its not the first chunk
+		$chunkContent = base64_decode($request["data"]);
+		Utils::WriteToFile($destFilePath, $chunkContent, $writeFlags);
+
+		// prepare the response
+		$response = array();
+		$response["size"] = filesize(FTPDir($destFilePath));
+		return $response;
+	}
+
 	private static function UpdateBoardLabelsInternal($boardID, $labelNames, $labelColors)
 	{
 		$labelsString = implode(",", $labelNames);
 		$labelColorsString = implode(",", $labelColors);
+
+		if (strlen($labelsString) >= self::MAX_LABEL_FIELD_LEN || strlen($labelColorsString) >= self::MAX_LABEL_FIELD_LEN)
+		{
+			http_response_code(400);
+			exit("The label configuration cannot be saved.");
+		}
+
 		DB::setParam("label_names", $labelsString);
 		DB::setParam("label_colors", $labelColorsString);
 		DB::setParam("board_id", $boardID);
 		DB::query("UPDATE tarallo_boards SET label_names = :label_names, label_colors = :label_colors WHERE id = :board_id");
+	}
+
+	private static function ApplyDBUpdates($dbVersion)
+	{
+		$cleanVersion = (int)str_replace("1-", "", $dbVersion); // clean old version format
+
+		// check if new updates are available and apply them
+		do
+		{
+			// check if the next version patch file exists
+			$nextVersion = $cleanVersion + 1;
+			$dbUpdatePatch = "dbpatch/update_{$cleanVersion}_to_{$nextVersion}.sql";
+			if (!Utils::FileExists($dbUpdatePatch))
+				break; // not available, db is up to date!
+
+			// load sql patch file and execute it
+			$sql = Utils::ReadFileAsString($dbUpdatePatch);
+			DB::exec($sql);
+
+			// check the next version
+			$cleanVersion = $nextVersion;
+
+		} while(true);
 	}
 	
 	private static function DeleteAttachmentFiles($attachmentRecord)
@@ -1715,19 +2043,20 @@ class API
 		return self::GetCardlistData($boardID, $newListID);
 	}
 
-	private static function CreateNewBoardInternal($title)
+	private static function CreateNewBoardInternal($title, $labelNames = "", $labelColors = "", $backgroundGUID = null)
 	{
 		try
 		{
 			DB::beginTransaction();
 		
 			// create a new board record
-			$createBoardQuery = "INSERT INTO tarallo_boards (title, label_names, label_colors, last_modified_time)";
-			$createBoardQuery .= " VALUES (:title, :label_names, :label_colors, :last_modified_time)";
+			$createBoardQuery = "INSERT INTO tarallo_boards (title, label_names, label_colors, last_modified_time, background_guid)";
+			$createBoardQuery .= " VALUES (:title, :label_names, :label_colors, :last_modified_time, :background_guid)";
 			DB::setParam("title", self::CleanBoardTitle($title));
-			DB::setParam("label_names", "");
-			DB::setParam("label_colors", "");
+			DB::setParam("label_names", $labelNames);
+			DB::setParam("label_colors", $labelColors);
 			DB::setParam("last_modified_time", time());
+			DB::setParam("background_guid", $backgroundGUID);
 			$newBoardID = DB::query($createBoardQuery, true);
 
 			// create the owner permission record
@@ -2042,6 +2371,11 @@ class API
 	{
 		DB::setParam("name", $name);
 		return DB::query_one_result("SELECT value FROM tarallo_settings WHERE name = :name");
+	}
+
+	private static function GetDBSettings()
+	{
+		return DB::fetch_assoc("SELECT name, value FROM tarallo_settings", "name", "value");
 	}
 }
 

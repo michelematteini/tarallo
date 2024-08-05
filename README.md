@@ -24,8 +24,9 @@ You will also be able to access a showcase board.
 4. access site via [http://localhost:8080](http://localhost:8080)
 
 ## Updating an instance to a new version:
-1. copy the content of `source/` to your web server, overriding existing ones
-2. check your db version (found in the db table `tarallo_settings`): if it's lower than the one in `db/init_db.sql`, all the `db/update_*_to_*.sql` queries that brings your db to the current version should also be executed
+1. log-out from Tarallo
+1. copy the content of `source/` to your web server, overriding existing files
+2. the first reload of the login page will also upgrade your db to the last version
 
 Additional settings can be found in the "tarallo_settings" DB table.
 ![Preview2](screenshots/preview3.JPG)

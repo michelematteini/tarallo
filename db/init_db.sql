@@ -34,8 +34,8 @@ CREATE TABLE `tarallo_boards` (
   `title` varchar(64) NOT NULL,
   `closed` int NOT NULL DEFAULT '0',
   `background_guid` varchar(64) DEFAULT NULL,
-  `label_names` varchar(400) NOT NULL,
-  `label_colors` varchar(400) NOT NULL,
+  `label_names` varchar(600) NOT NULL,
+  `label_colors` varchar(600) NOT NULL,
   `last_modified_time` bigint NOT NULL 
 );
 
@@ -108,19 +108,21 @@ CREATE TABLE `tarallo_users` (
 CREATE TABLE `tarallo_settings` (
   `id` int NOT NULL,
   `name` varchar(32) NOT NULL,
-  `value` varchar(512) NOT NULL,
-  `client_access` int NOT NULL
+  `value` varchar(512) NOT NULL
 );
 
 --
 -- Dumping data for table `tarallo_settings`
 --
 
-INSERT INTO `tarallo_settings` (`id`, `name`, `value`, `client_access`) VALUES
-(1, 'db_version', '1-3', 0),
-(2, 'registration_enabled', '1', 0),
-(3, 'attachment_max_size_kb', '2048', 1),
-(4, 'instance_msg', '', 1);
+INSERT INTO `tarallo_settings` (`id`, `name`, `value`) VALUES
+(1, 'db_version', '4'),
+(2, 'registration_enabled', '1'),
+(3, 'attachment_max_size_kb', '2048'),
+(4, 'instance_msg', ''),
+(5, 'board_export_enabled', '1'), 
+(6, 'board_import_enabled', '1'), 
+(7, 'trello_import_enabled', '1');
 
 --
 -- Indexes for dumped tables

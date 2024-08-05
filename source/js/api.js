@@ -1,12 +1,12 @@
 class TaralloServer {
-	static async JsonRequest(pageUrl, postParams, successCallback, errorCallback) {	
+	static async JsonRequest(pageUrl, postParams) {	
 		const requestOptions = {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(postParams)
 		};
 
-		let requestError = "";
+		let result = { succeeded: false, error: "" };
 
 		activeJsonRequest: {
 
@@ -15,45 +15,43 @@ class TaralloServer {
 			try {
 				response = await fetch(pageUrl, requestOptions);
 			} catch {
-				requestError = "Network error.";
+				result.error = "Network error.";
 				break activeJsonRequest;
 			}
 
 			// check response code
 			if (!response.ok) {
-				requestError = await response.text();
-				if (requestError.length == 0) {
+				result.error = await response.text();
+				if (result.error.length == 0) {
 					// set default error message if missing.
-					requestError = `Request failed for page ${pageUrl} with code ${response.status} (${response.statusText})\n`;
+					result.error = `Request failed for page ${pageUrl} with code ${response.status} (${response.statusText})\n`;
 				}
 				break activeJsonRequest;
 			}
 
 			// if succeeded, invoke the callback with the json
 			const responseJson = await response.text();
-			let responseObj;
 			try {
-				responseObj = JSON.parse(responseJson);
+				result.response = JSON.parse(responseJson);
 			} catch {
 				// error parsing the json response, try to print the content
-				requestError = `Json parsing error from page ${pageUrl}:\n`;
-				requestError += responseJson;
+				result.error = `Json parsing error from page ${pageUrl}:\n`;
+				result.error += responseJson;
 				break activeJsonRequest;
 			}
 
-			// invoke the final callback on success
-			successCallback(responseObj);
-			return;
+			result.succeeded = true;
 		}
 
-		// error occurred in the request, log errors
-		console.error(requestError);
-		if (errorCallback) {
-			errorCallback(requestError);
+		if (!result.succeeded) {
+			// error occurred in the request, log
+			console.error(result.error);
 		}
+
+		return result;
 	}
 
-	static async Call(apiName, params, successCallback, errorElementID) {
+	static async Call(apiName, params) {
 		// add operation name to the params
 		let postParams = { "OP": apiName };
 
@@ -64,6 +62,20 @@ class TaralloServer {
 
 		// add user params
 		Object.assign(postParams, params);
-		TaralloServer.JsonRequest("php/api.php", postParams, successCallback, errorElementID);
+
+		// make the request and return its promise
+		return TaralloServer.JsonRequest("php/api.php", postParams);
+	}
+
+	// call to a server function, made to be used asynchronously, accepting callbacks on success and error
+	static async AsyncCall(apiName, params, successCallback, errorCallback) {
+		// make the request and wait
+		const result = await TaralloServer.Call(apiName, params);
+		// invoke the appropriate callback, depending on the result
+		if (result.succeeded) {
+			successCallback(result.response);
+		} else {
+			errorCallback(result.error);
+		}
 	}
 }

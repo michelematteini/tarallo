@@ -96,6 +96,17 @@
 	
 			return $result;
 		}
+
+		//Execute a query and return the number of affected rows.
+		//Parameters are not supported, but mupliple queries can be passed, separated by a semi-column.
+		//	$query: the query string
+		public static function exec($query)
+		{
+			$db = self::open();
+			$db->query('SET NAMES utf8');
+			$result = $db->exec($query);	
+			return $result;
+		}
 		
 		//Execute a query and return only one element (first row, first column).
 		//	$query: the query string

@@ -7,14 +7,14 @@
     <link rel="icon" type="image/png" sizes="64x64" href="images/favicon-large.png">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
     <link href="css/tarallo.css" rel="stylesheet" type="text/css" />
-    <template id="tmpl-login">        
+    <template id="tmpl-login">
         <div class="centered-container">
             <div id="login-form" class="centered-dialog dialog">
                 <label>Username</label>
                 <input type="text" id="login-username" placeholder="Username" />
                 <label>Password</label>
                 <input type="password" id="login-password" placeholder="Password" />
-                <button id="login-btn" class="contrast-btn separator">Login</button>
+                <button id="login-btn" class="contrast-btn separator full-width">Login</button>
                 <a id="register-page-btn" class="inline-link separator" href="#">register a new account</a>
                 <p id="login-error" class="popup separator"></p>
             </div>
@@ -32,7 +32,7 @@
                 <input type="text" id="login-display-name" placeholder="Name Surname" />
                 <label>Password</label>
                 <input type="password" id="login-password" placeholder="Password" />
-                <button id="register-btn" class="contrast-btn separator">Register</button>
+                <button id="register-btn" class="contrast-btn separator full-width">Register</button>
                 <a id="login-page-btn" class="inline-link separator" href="#">go back to login page</a>
                 <p id="register-error" class="popup separator"></p>
             </div>
@@ -51,6 +51,9 @@
             <div id="boards">
                 <div id="new-board-btn" class="boardtile boardtile-btn">
                     <h4>&#10010 Create new board</h4>
+                </div>
+                <div id="import-board-btn" class="boardtile boardtile-btn">
+                    <h4>&#10010 Import board</h4>
                 </div>
                 <div id="trello-import-btn" class="boardtile boardtile-btn">
                     <h4>&#10010 Import from Trello</h4>
@@ -85,6 +88,7 @@
                 <h3>
                     <a id="board-change-bg-btn" class="inline-link" href="#">background</a>
                     <a id="board-share-btn" class="inline-link" href="#">share</a>
+                    <a id="board-export-btn" class="inline-link" href="php/api.php?OP=ExportBoard&board_id=$id">export</a>
                 </h3>
             </div>
             <div id="projectbar-middle" class="projectbar-tile">
@@ -120,6 +124,15 @@
                 <button id="closedboard-reopen-btn" class="contrast-btn">Reopen board</button>
                 <p id="closedboard-delete-label" class="hidden">All the board cards and attachments will be deleted, and you won't be able to acces them again, are you sure?</p>
                 <a id="closedboard-delete-link" class="inline-link" href="#">Permanently delete board</a>
+            </div>
+        </div>
+    </template>
+    <template id="tmpl-loading-dialog">
+        <div class="centered-container">
+            <div id="loading-dialog" class="centered-dialog dialog">
+                <h1>$title</h1>
+                <p class="separator text-center">$msg</p>
+                <div class="loader separator"></div>
             </div>
         </div>
     </template>
@@ -277,7 +290,7 @@
         <symbol id="icon-unlocked" viewBox="0 0 20 20">
             <path fill="currentColor" fill-rule="evenodd" d="M14.5 1A4.5 4.5 0 0 0 10 5.5V9H3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1.5V5.5a3 3 0 1 1 6 0v2.75a.75.75 0 0 0 1.5 0V5.5A4.5 4.5 0 0 0 14.5 1Z" clip-rule="evenodd" />
         </symbol>
-        <symbol  id="icon-copy" viewBox="0 0 24 24">
+        <symbol id="icon-copy" viewBox="0 0 24 24">
             <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
                 <path d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2Z" />
                 <path d="M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" />
@@ -286,16 +299,17 @@
     </svg>
 </head>
 <body>
-	<div id="titlebar">
-		<h1>Tarall<img class="title-icon" src="images/favicon-large.png" /></h1>
-	</div>
-	<div id="content">
-	</div>
-	<p id="page-error" class="popup"></p>
-	<script src="js/dragdroptouch.js"></script>
-	<script src="js/utils.js"></script>
-	<script src="js/textformat.js"></script>
-	<script src="js/api.js"></script>
-	<script src="js/tarallo.js"></script>
+    <div id="progress-bar" style="width:0%"></div>
+    <div id="titlebar">
+        <h1>Tarall<img class="title-icon" src="images/favicon-large.png" /></h1>
+    </div>
+    <div id="content">
+    </div>
+    <p id="page-error" class="popup"></p>
+    <script src="js/dragdroptouch.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/textformat.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/tarallo.js"></script>
 </body>
 </html>

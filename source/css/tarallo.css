@@ -200,6 +200,14 @@ a:hover {
     margin-top: 1rem;
 }
 
+.full-width {
+    width: 100%;
+}
+
+.text-center {
+    text-align: center;
+}
+
 .scrollable-dialog {
     margin-top: 1rem;
     margin-left: auto;
@@ -221,6 +229,7 @@ a:hover {
         display: flex;
         flex-direction: column;
         height: fit-content;
+        align-items: center;
     }
 
 [contentEditable]:focus {
@@ -953,4 +962,23 @@ button {
 #instance-message {
     margin: 1rem auto 0 auto;
     background-color: var(--accent-color-1);
+}
+
+#progress-bar {
+    position: absolute;
+    background-image: linear-gradient(90deg, var(--bnt-active-color-1) 0%, var(--accent-color-1) 50%, var(--bnt-active-color-1) 100%);
+    height: 0.4rem;
+    background-size: 50rem;
+    animation: progress-bar-amin 3s linear infinite;
+    transition: width ease-out 1s;
+}
+
+@keyframes progress-bar-amin {
+    0% {
+        background-position-x: 0rem;
+    }
+
+    100% {
+        background-position-x: 100rem;
+    }
 }

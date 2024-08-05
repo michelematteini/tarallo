@@ -29,7 +29,7 @@ function ContentMarkupToHtml(markup, attachmentList) {
             markupLine = markupLine.replaceAll(/\*\*(.*?)\*\*/g, "<b>$1</b>"); // bold
             markupLine = markupLine.replaceAll(/`([^`]+?)`/g, "<span class=\"monospace\">$1</span>"); // monospace
             const mouseDownJS = "window.open(\"$1\", \"_blank\"); event.preventDefault();";
-            markupLine = markupLine.replaceAll(/(https?:\/\/.*?)(\s|$)/g, "<a onmousedown='" + mouseDownJS + "' href='' contentEditable='false'>$1</a>$2"); // links
+            markupLine = markupLine.replaceAll(/(https?:\/\/.*?)(\s|$)/g, "<a onmousedown='" + mouseDownJS + "' href='$1' contentEditable='false'>$1</a>$2"); // links
         }
 
         // === convert line start tokens

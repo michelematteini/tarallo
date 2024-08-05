@@ -6,23 +6,34 @@ class Utils {
 		return json_decode($inputJSON, true); //convert JSON into an array
 	}
 
-	public static function WriteToFile($filePath, $contents) 
+    // create directories for the specified file path if these don't exist
+    public static function PrepareDir($filePath)
     {
-        // create subdirectories that do not exists
         $absDir = FTPDir(dirname($filePath));
         if(!is_dir($absDir))
         {
             mkdir($absDir, 0777, true);       
         }
+    }
 
+	public static function WriteToFile($filePath, $contents, $flags = 0) 
+    {
+        // create subdirectories that do not exists
+        self::PrepareDir($filePath);
+        
         // save content to file
         $absPath = FTPDir($filePath);
-        return file_put_contents($absPath, $contents);
+        return file_put_contents($absPath, $contents, $flags);
+    }
+
+    public static function ReadFileAsString($filePath) 
+    {
+        $absDir = FTPDir($filePath);
+        return file_get_contents($absDir);
     }
 
     public static function DeleteFile($filePath) 
     {
-        // create subdirectories that do not exists
         $absDir = FTPDir($filePath);
         unlink($absDir);
     }
@@ -69,6 +80,10 @@ class Utils {
             readfile($absFilePath);
             exit;
         }
+        else {
+            http_response_code(404);
+			exit("File not found.");
+        }
     }
 
     public static function FileExists($filePath) 
@@ -114,6 +129,19 @@ class Utils {
             mkdir($destAbsDir, 0777, true);       
         }
         imagejpeg($destImage, $destAbsPath);
+    }
+
+    // given a list of db row records, this function builds a mapping of the speicified id field from the current to a new value, 
+    // starting from the given next free id
+    public static function RebuildDBIndex($dbRows, $idFieldName, $nextFreeID)
+    {
+        $newIndex = array();
+		$rowCount = count($dbRows);
+		for ($i = 0; $i < $rowCount; $i++)
+		{
+			$newIndex[$dbRows[$i][$idFieldName]] = $nextFreeID++;
+		}
+		return $newIndex;
     }
 
     public const MimeTypes = array(

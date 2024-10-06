@@ -54,15 +54,19 @@ class API
 		{
 			if (isset($request["board_id"])) 
 			{
+				//prepare board page
 				$response = self::GetBoardPage($request);
 			}
 			else 
 			{
+				//prepare board list page
 				$response = self::GetBoardListPage($request);
 			}		
 		} 
 		else 
 		{
+			//prepare login page
+
 			$settings = self::GetDBSettings();
 
 			// load and apply db updates if any
@@ -70,9 +74,8 @@ class API
 
 			// prepare login page data
 			$response["page_name"] = "Login";
-			$response["page_content"] = array();
+			$response["page_content"] = $settings;
 			$response["page_content"]["background_img_url"] = self::DEFAULT_BG;
-			$response["page_content"]["instance_msg"] = $settings["instance_msg"];
 		}
 
 		return $response;
@@ -102,6 +105,7 @@ class API
 
 		// prepare json response
 		$response["page_name"] = "BoardList";
+		$pageContent = self::GetDBSettings();
 		$pageContent["boards"] = $boardList;
 		$pageContent["background_url"] = self::DEFAULT_BG;
 		$pageContent["background_tiled"] = true;
@@ -241,7 +245,9 @@ class API
 
 	public static function Register($request) 
 	{
-		if (!self::GetDBSetting("registration_enabled"))
+		$settings = self::GetDBSettings();
+
+		if (!settings["registration_enabled"])
 		{
 			http_response_code(403);
 			exit("Account creation is disabled on this server!");
@@ -337,7 +343,7 @@ class API
 			DB::query($addPermsQuery);
 		}
 
-		$response = array();
+		$response = $settings;
 		$response["username"] = $request["username"];
 		return $response;
 	}
@@ -2094,7 +2100,7 @@ class API
 		$card["label_mask"] = $cardRecord["label_mask"];
 		if ($cardRecord["last_moved_time"] != 0) 
 		{
-			$card["last_moved_date"] = date("d M Y", $cardRecord["last_moved_time"]);
+			$card["last_moved_date"] = date("l, d M Y", $cardRecord["last_moved_time"]);
 		}
 		$card = array_merge($card, self::CardFlagMaskToList($cardRecord["flags"]));
 		return $card;
@@ -2140,6 +2146,7 @@ class API
 		$boardData["label_names"] = $boardRecord["label_names"];
 		$boardData["label_colors"] = $boardRecord["label_colors"];
 		$boardData["all_color_names"] = self::DEFAULT_LABEL_COLORS;
+		$boardData["last_modified_date"] = date("d M Y", $boardRecord["last_modified_time"]);
 		return $boardData;
 	}
 

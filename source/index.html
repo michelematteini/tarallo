@@ -19,6 +19,9 @@
                 <p id="login-error" class="popup separator"></p>
             </div>
         </div>
+        <div id="footer">
+            Sources: <a href="https://github.com/michelematteini/tarallo">Github repository</a> | DB Version: $db_version
+        </div>
     </template>
     <template id="tmpl-instance-msg">
         <div id="instance-message" class="popup persistent">$instance_msg</div>
@@ -36,6 +39,9 @@
                 <a id="login-page-btn" class="inline-link separator" href="#">go back to login page</a>
                 <p id="register-error" class="popup separator"></p>
             </div>
+        </div>
+        <div id="footer">
+            Sources: <a href="https://github.com/michelematteini/tarallo">Github repository</a> | DB Version: $db_version
         </div>
     </template>
     <template id="tmpl-boardlist">
@@ -63,12 +69,16 @@
             <div id="closed-boards">
             </div>
         </div>
+        <div id="footer">
+            Sources: <a href="https://github.com/michelematteini/tarallo">Github repository</a> | DB Version: $db_version
+        </div>
     </template>
     <template id="tmpl-boardtile">
         <div class="boardtile" style="background-image: url('$background_thumb_url')" id="board-tile-$id">
             <div class="backdrop">
                 <a href="?board_id=$id">
                     <h4>$title</h4>
+                    <p class="last-edit-date">Last edit: $last_modified_date</p>
                 </a>
                 <svg class="delete-board-btn contrast-icon"><use href="#icon-trashbin" /></svg>
             </div>

@@ -307,6 +307,12 @@ a:hover {
     align-items: flex-start;
 }
 
+#footer {
+    background-color: var(--bg-color-1);
+    text-align: center;
+    padding: 0.5rem 0;
+}
+
 .cardlist {
     max-height: calc(100% - 2rem);
     min-height: 2rem;
@@ -470,6 +476,19 @@ a:hover {
         text-decoration: none;
         margin-right: 1rem;
         flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .boardtile .last-edit-date {
+        color: var(--text-color-1);
+        margin: 0 1rem;
+        width: 100%;
+        display: block;
+        background-color: var(--bg-color-1);
+        border-radius: var(--border-radius);
+        padding: 0.2rem;
     }
 
     .boardtile:hover .delete-board-btn {
@@ -531,8 +550,7 @@ a:hover {
         height: 1.3rem;
         vertical-align: sub;
         accent-color: var(--bnt-color-1);
-        margin-right: 0.5rem;
-        margin-left: -1.3rem;
+        margin-left: -2.0rem;
     }
 
     .opencard-content h2, .opencard-content h3, .opencard-content h4, .opencard-content p {
@@ -588,6 +606,12 @@ a:hover {
     .opencard-content .content-img {
         max-width: 100%;
         border-radius: var(--border-radius);
+    }
+
+
+    .opencard-content li {
+        padding: 0.5rem 0;
+        border-bottom: solid 0.1rem var(--bg-color-4);
     }
 
 .opencard h2 {

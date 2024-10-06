@@ -61,7 +61,7 @@ class TaralloClient {
 	}
 
 	OnSuccessfulRegistration(jsonResponseObj) {
-		this.LoadLoginPage();
+		this.LoadLoginPage(jsonResponseObj);
 		document.getElementById("login-username").value = jsonResponseObj["username"];
 		this.ShowInfoPopup("Account successfully created, please login!", "login-error");
 	}
@@ -97,13 +97,13 @@ class TaralloClient {
 	// loads the login page as the page content
 	LoadLoginPage(contentObj) {
 		// fill page content with the login form
-		TaralloUtils.ReplaceContentWithTemplate("tmpl-login", {});
+		TaralloUtils.ReplaceContentWithTemplate("tmpl-login", contentObj);
 		document.title = "Tarallo - Login";
 
 		// setup login button event
 		const formNode = document.querySelector("#login-form");
 		TaralloUtils.SetEventBySelector(formNode, "#login-btn", "onclick", () => this.UiLogin());
-		TaralloUtils.SetEventBySelector(formNode, "#register-page-btn", "onclick", () => this.LoadRegisterPage());
+		TaralloUtils.SetEventBySelector(formNode, "#register-page-btn", "onclick", () => this.LoadRegisterPage(contentObj));
 
 		// add instance message if any
 		if (contentObj["instance_msg"]) {
@@ -112,15 +112,15 @@ class TaralloClient {
 		}
 	}
 
-	LoadRegisterPage() {
+	LoadRegisterPage(contentObj) {
 		// fill page content with the registration form
-		TaralloUtils.ReplaceContentWithTemplate("tmpl-register", {});
+		TaralloUtils.ReplaceContentWithTemplate("tmpl-register", contentObj);
 		document.title = "Tarallo - Register";
 
 		// setup login button event
 		const formNode = document.querySelector("#login-form");
 		TaralloUtils.SetEventBySelector(formNode, "#register-btn", "onclick", () => this.UiRegister());
-		TaralloUtils.SetEventBySelector(formNode, "#login-page-btn", "onclick", () => this.LoadLoginPage());
+		TaralloUtils.SetEventBySelector(formNode, "#login-page-btn", "onclick", () => this.LoadLoginPage(contentObj));
 	}
 
 	LoadBoardTile(boardData) {

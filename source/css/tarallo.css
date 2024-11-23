@@ -574,7 +574,6 @@ a:hover {
         font-family: monospace;
         background-color: var(--bg-color-2);
         color: var(--text-color-3);
-        
     }
 
         .opencard-content .monospace p {
@@ -585,20 +584,28 @@ a:hover {
         padding: 0rem 0.5rem;
     }
 
-    .opencard-content div.monospace {
+    .opencard-content .multiline-container {
+        position: relative;
+    }
+
+    .opencard-content .multiline-container div.monospace {
         margin-top: 0.5rem;
-        padding: 2.0rem 1.2rem 0.6rem 2rem;
+        padding: 1.0rem 0rem 0.5rem 2rem;
         border-left: solid 0.5rem var(--bg-color-4);
         overflow-x: auto;
         white-space: nowrap;
+        box-sizing: border-box;
     }
 
-        .opencard-content div.monospace .copy-btn {
-            float: right;
-            margin-top: -1.5rem;
+        .opencard-content .multiline-container .copy-btn {
+            position: absolute;
+            right: 0;
+            padding: 0.5rem;
+            background: var(--bg-color-3);
+            border-radius: var(--border-radius);
         }
 
-            .opencard-content div.monospace .copy-btn svg {
+            .opencard-content .multiline-container .copy-btn svg {
                 height: 1.4rem;
                 width: 1.4rem;
             }

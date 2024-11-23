@@ -791,7 +791,7 @@ class TaralloClient {
 		// copy to clipboard buttons
 		for (const copyBtnElem of contentElem.querySelectorAll(".copy-btn")) {
 			copyBtnElem.onmousedown = (event) => {
-				this.UiCardContentToClipboard(copyBtnElem.parentElement);
+				this.UiCardContentToClipboard(copyBtnElem.parentElement.querySelector(".monospace"));
 				event.preventDefault();
 			}
 		}

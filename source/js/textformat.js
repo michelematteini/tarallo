@@ -85,12 +85,15 @@ function ContentMarkupToHtml(markup, attachmentList) {
             lineHtml += markupLine.substring(markupLine.indexOf(".") + 2);
             lineHtml += "</li>";
         } else if (markupLine.startsWith(MARKUP_CODE_MULTILINE)) {
-            if (tagStack[tagStack.length - 1] !== "</div>") {
+            if (tagStack[tagStack.length - 1] !== "</div></div>") {
                 // start of multiline code block
-                lineHtml += "<div class=\"monospace\">";
+                lineHtml += "<div class=\"multiline-container\">";
                 // copy to clipboard button
                 lineHtml += "<span contenteditable=false class='copy-btn'><svg class=\"dim-icon\"><use href=\"#icon-copy\" /></svg></span>";
-                tagStack.push("</div>");
+                // monospace code block
+                lineHtml += "<div class=\"monospace\">";
+
+                tagStack.push("</div></div>");
             } else {
                 // end of multiline code block
                 lineHtml += tagStack.pop();
@@ -117,7 +120,7 @@ function ContentMarkupToHtml(markup, attachmentList) {
 
         } else if (markupLine.trim().length == 0) {
             // empty line
-            if (tagStack.length > 0 && tagStack[tagStack.length - 1] !== "</div>") {
+            if (tagStack.length > 0 && !tagStack[tagStack.length - 1].endsWith("</div>")) {
                 lineHtml += tagStack.pop();
             }
             lineHtml += "<br>";

@@ -1070,7 +1070,7 @@ class API
 			// add attachments
 			{
 				// prepare a query to add all the attachments
-				$addAttachementsQuery = "INSERT INTO tarallo_attachments (id, name, guid, extension, card_id, board_id) VALUES ";
+				$addAttachmentsQuery = "INSERT INTO tarallo_attachments (id, name, guid, extension, card_id, board_id) VALUES ";
 				$attachmentsPlaceholders = "(?, ?, ?, ?, ?, ?)";
 				// foreach cardlist
 				for ($i = 0; $i < count($boardExportData["attachments"]); $i++) 
@@ -1086,10 +1086,10 @@ class API
 					DB::$qparams[] = $newBoardID;// board_id
 				
 					// add query format
-					$addAttachementsQuery .= ($i > 0 ? ", " : "") . $attachmentsPlaceholders;
+					$addAttachmentsQuery .= ($i > 0 ? ", " : "") . $attachmentsPlaceholders;
 				}
 				// add all the cards for this list to the DB
-				DB::query($addAttachementsQuery);
+				DB::query($addAttachmentsQuery);
 			}
 
 			// unzip board content to board/ folder

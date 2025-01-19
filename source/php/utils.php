@@ -20,7 +20,7 @@ class Utils {
     {
         // create subdirectories that do not exists
         self::PrepareDir($filePath);
-        
+
         // save content to file
         $absPath = FTPDir($filePath);
         return file_put_contents($absPath, $contents, $flags);
@@ -69,7 +69,7 @@ class Utils {
         rmdir($dirPath);
     }
 
-    public static function OutputFile($filePath, $contentType, $fileName, $isDownload = false) 
+    public static function OutputFile($filePath, $contentType, $fileName, $isDownload = false)
     {
         $absFilePath = FTPDir($filePath);
         if (file_exists($absFilePath)) {
@@ -96,7 +96,7 @@ class Utils {
     {
         $srcAbsPath = FTPDir($srcImgPath);
         $srcInfo = getimagesize($srcAbsPath);
-        
+
         // load the source image
         switch($srcInfo[2])
         {
@@ -119,7 +119,7 @@ class Utils {
         $destHeight = floor($destWidth * $srcInfo[1] / $srcInfo[0]);
         $destImage = imagecreatetruecolor($destWidth, $destHeight);
         imagecopyresampled($destImage, $srcImage, 0, 0, 0, 0, $destWidth, $destHeight, $srcInfo[0], $srcInfo[1]);
-        
+
         // save thumbnail as jpg
         $destAbsPath = FTPDir($destImgPath);
         $destAbsDir = dirname($destAbsPath);

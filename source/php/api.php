@@ -6,13 +6,13 @@ require_once 'dbaccess.php';
 
 // page initialization
 header('Content-Type: application/json; charset=utf-8');
-session_start(['cookie_samesite' => 'Strict',]); 
+session_start(['cookie_samesite' => 'Strict',]);
 
 // initialize parameters
 $request = Utils::DecodePostJSON(); // params posted as json
 $request = array_merge($request == null ? array() : $request, $_GET); // params added to the url
 
-// check the the api call name has been specified 
+// check the the api call name has been specified
 // and it's a valid API call
 if (!isset($request['OP']) || !method_exists("API", $request['OP'])) {
 	http_response_code(400);
@@ -245,7 +245,7 @@ class API
 		exit("Invalid username or password!");
 	}
 
-	public static function Register($request) 
+	public static function Register($request)
 	{
 		$settings = self::GetDBSettings();
 
@@ -363,7 +363,7 @@ class API
 		$openCardQuery = "SELECT tarallo_cards.*, tarallo_permissions.user_type";
 		$openCardQuery .= " FROM tarallo_cards INNER JOIN tarallo_permissions ON tarallo_cards.board_id = tarallo_permissions.board_id";
 		$openCardQuery .= " WHERE tarallo_cards.id = :id AND tarallo_permissions.user_id = :user_id";
-		DB::setParam("user_id", $_SESSION["user_id"]); 
+		DB::setParam("user_id", $_SESSION["user_id"]);
 		DB::setParam("id", $request["id"]);
 
 		// init the response with the card data and its content
@@ -453,8 +453,8 @@ class API
 
 			// add the card at the new location
 			$newCardRecord = self::AddNewCardInternal(
-				$request["board_id"], 
-				$request["dest_cardlist_id"], 
+				$request["board_id"],
+				$request["dest_cardlist_id"],
 				$request["new_prev_card_id"],
 				$cardRecord["title"],
 				$cardRecord["content"],
@@ -2192,7 +2192,7 @@ class API
 		DB::query("UPDATE tarallo_boards SET last_modified_time = :last_modified_time WHERE id = :board_id");
 	}
 
-	private static function CheckPermissions($userType, $requestedUserType) 
+	private static function CheckPermissions($userType, $requestedUserType)
 	{
 		if ($userType > $requestedUserType)
 		{

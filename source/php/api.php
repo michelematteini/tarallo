@@ -612,8 +612,9 @@ class API
 			exit("Attachment is too big! Max size is $maxAttachmentSize kb");
 		}
 
-		// query and validate board id
-		$boardData = self::GetBoardData($request["board_id"], self::USERTYPE_Member);
+		// just verifying that the board exists and that we have access
+		self::GetBoardData($request["board_id"], self::USERTYPE_Member);
+
 		// query and validate card id
 		$cardRecord = self::GetCardData($request["board_id"], $request["card_id"]);
 

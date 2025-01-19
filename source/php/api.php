@@ -247,7 +247,7 @@ class API
 	{
 		$settings = self::GetDBSettings();
 
-		if (!settings["registration_enabled"])
+		if (!$settings["registration_enabled"])
 		{
 			http_response_code(403);
 			exit("Account creation is disabled on this server!");

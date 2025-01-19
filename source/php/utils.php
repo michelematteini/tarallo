@@ -63,7 +63,7 @@ class Utils {
             if (is_dir($filePath))
                 self::DeleteDirInternal($filePath);
             else
-               unlink($filePath);
+                unlink($filePath);
         }
 
         // delete the top folder
@@ -83,7 +83,7 @@ class Utils {
         }
         else {
             http_response_code(404);
-			exit("File not found.");
+            exit("File not found.");
         }
     }
 
@@ -127,7 +127,7 @@ class Utils {
         if(!is_dir($destAbsDir))
         {
             // create subdirectories that do not exists
-            mkdir($destAbsDir, 0777, true);       
+            mkdir($destAbsDir, 0777, true);
         }
         imagejpeg($destImage, $destAbsPath);
     }

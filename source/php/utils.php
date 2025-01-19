@@ -26,19 +26,19 @@ class Utils {
         return file_put_contents($absPath, $contents, $flags);
     }
 
-    public static function ReadFileAsString($filePath) 
+    public static function ReadFileAsString($filePath)
     {
         $absDir = FTPDir($filePath);
         return file_get_contents($absDir);
     }
 
-    public static function DeleteFile($filePath) 
+    public static function DeleteFile($filePath)
     {
         $absDir = FTPDir($filePath);
         unlink($absDir);
     }
 
-    public static function DeleteDir($dirPath) 
+    public static function DeleteDir($dirPath)
     {
         // remove trailing slash if any
         $lastCharIndex = strlen($dirPath) - 1;
@@ -86,7 +86,7 @@ class Utils {
         }
     }
 
-    public static function FileExists($filePath) 
+    public static function FileExists($filePath)
     {
         $absFilePath = FTPDir($filePath);
         return file_exists($absFilePath);

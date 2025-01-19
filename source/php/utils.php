@@ -10,9 +10,10 @@ class Utils {
     public static function PrepareDir($filePath)
     {
         $absDir = FTPDir(dirname($filePath));
-        if(!is_dir($absDir))
+
+        if (!is_dir($absDir) && !@mkdir($absDir, 0777, true))
         {
-            mkdir($absDir, 0777, true);       
+            exit(sprintf('Failed to create directory "%s". Please check permissions.', $absDir));
         }
     }
 

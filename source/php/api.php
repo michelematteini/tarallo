@@ -25,7 +25,7 @@ $response = $methodName($request);
 echo json_encode($response);
 
 // contains all the tarallo api calls
-class API 
+class API
 {
 	const DEFAULT_BG = "images/tarallo-bg.jpg";
 	const DEFAULT_BOARDTILE_BG = "images/boardtile-bg.jpg";
@@ -81,7 +81,7 @@ class API
 		return $response;
 	}
 
-	public static function GetBoardListPage($request) 
+	public static function GetBoardListPage($request)
 	{
 		$response = array();
 
@@ -90,8 +90,8 @@ class API
 		$boardsQuery .= " FROM tarallo_boards INNER JOIN tarallo_permissions ON tarallo_boards.id = tarallo_permissions.board_id";
 		$boardsQuery .= " WHERE tarallo_permissions.user_id  = :user_id";
 		$boardsQuery .= " ORDER BY last_modified_time DESC";
-		
-		DB::setParam("user_id", $_SESSION["user_id"]); 
+
+		DB::setParam("user_id", $_SESSION["user_id"]);
 		$results = DB::fetch_table($boardsQuery);
 
 		if (array_key_exists('user_type', $results)) {
@@ -184,7 +184,7 @@ class API
 
 		return $response;
 	}
-	
+
 	public static function Login($request)
 	{
 		if (self::IsUserLoggedIn())
@@ -209,7 +209,7 @@ class API
 			DB::setParam("username", $request["username"]);
 			DB::setParam("passwordHash", $passwordHash);
 			DB::query($setPasswordQuery);
-			
+
 			// update the record query so that the newly created password will be verified
 			DB::setParam("username", $request["username"]);
 			$userRecord = DB::fetch_row($userQuery);
@@ -222,13 +222,13 @@ class API
 		}
 
 		// ===== successful login!
-		
+
 		// update session
 		$_SESSION["logged_in"] = true;
 		$_SESSION["user_id"] = $userRecord["id"];
 		$_SESSION["username"] = $userRecord["username"];
 		$_SESSION["display_name"] = $userRecord["display_name"];
-		
+
 		// update last login time in db
 		$updateLoginTimeQuery = "UPDATE tarallo_users SET last_access_time = :last_access_time WHERE id = :user_id";
 		DB::setParam("last_access_time", time());
@@ -271,7 +271,7 @@ class API
 			http_response_code(400);
 			exit("Username must be alpha-numeric and cannot contain spaces!");
 		}
-		
+
 		// validate display name
 		$cleanDisplayName = trim($request["display_name"]);
 		if (strlen($cleanDisplayName) < 3)
@@ -336,7 +336,7 @@ class API
 				DB::$qparams[] = $userID;
 				DB::$qparams[] = $curPermissions["board_id"];
 				DB::$qparams[] = $curPermissions["user_type"];
-				
+
 				// add query format
 				$addPermsQuery .= ($i > 0 ? ", " : "") . $recordPlaceholders;
 			}
@@ -357,7 +357,7 @@ class API
 		return $response;
 	}
 
-	public static function OpenCard($request) 
+	public static function OpenCard($request)
 	{
 		// fetch and validate card data
 		$openCardQuery = "SELECT tarallo_cards.*, tarallo_permissions.user_type";
@@ -389,7 +389,7 @@ class API
 		{
 			$response["attachmentList"][] = self::AttachmentRecordToData($attachmentList[$i]);
 		}
-		
+
 		return $response;
 	}
 
@@ -450,7 +450,7 @@ class API
 
 			// update last_move_time only if the card list is changing
 			$lastMovedTime = $cardRecord["cardlist_id"] != $request["dest_cardlist_id"] ? time() : $cardRecord["last_moved_time"];
-			
+
 			// add the card at the new location
 			$newCardRecord = self::AddNewCardInternal(
 				$request["board_id"], 
@@ -550,7 +550,7 @@ class API
 		DB::setParam("title", $request["title"]);
 		DB::setParam("id", $request["id"]);
 		DB::query($titleUpdateQuery);
-		
+
 		self::UpdateBoardModifiedTime($request["board_id"]);
 
 		$cardRecord["title"] = $request["title"];
@@ -721,7 +721,7 @@ class API
 		$deletionQuery = "DELETE FROM tarallo_attachments WHERE id = :id";
 		DB::setParam("id", $request["id"]);
 		DB::query($deletionQuery);
-		
+
 		// delete from cover image if any
 		DB::setParam("attachment_id", $attachmentRecord["id"]);
 		DB::setParam("card_id", $attachmentRecord["card_id"]);
@@ -788,7 +788,7 @@ class API
 	{
 		// query and validate board id
 		$boardData = self::GetBoardData($request["board_id"]);
-		
+
 		//query and validate cardlist id
 		$cardlistData = self::GetCardlistData($request["board_id"], $request["id"]);
 
@@ -803,7 +803,7 @@ class API
 		$cardlistData["name"] = $request["name"];
 		return $cardlistData;
 	}
-	
+
 	public static function AddCardList($request)
 	{
 		// query and validate board id
@@ -847,7 +847,7 @@ class API
 	{
 		// query and validate board id
 		$boardData = self::GetBoardData($request["board_id"]);
-		
+
 		// update the board title
 		DB::setParam("title", self::CleanBoardTitle($request["title"]));
 		DB::setParam("id", $request["board_id"]);
@@ -878,7 +878,7 @@ class API
 	{
 		// query and validate board id
 		$boardData = self::GetBoardData($request["id"]);
-		
+
 		// mark the board as closed
 		DB::setParam("id", $request["id"]);
 		DB::query("UPDATE tarallo_boards SET closed = 1 WHERE id = :id");
@@ -893,7 +893,7 @@ class API
 	{
 		// query and validate board id
 		$boardData = self::GetBoardData($request["id"]);
-		
+
 		// mark the board as closed
 		DB::setParam("id", $request["id"]);
 		DB::query("UPDATE tarallo_boards SET closed = 0 WHERE id = :id");
@@ -908,14 +908,14 @@ class API
 	{
 		// query and validate board id
 		$boardData = self::GetBoardData($request["id"]);
-		
+
 		// make sure the board is closed before deleting
 		if (!$boardData["closed"])
 		{
 			http_response_code(400);
 			exit("Cannot delete an open board.");
 		}
-		
+
 		$boardID = $request["id"];
 
 		// save attachment records before deleting them
@@ -954,7 +954,7 @@ class API
 			DB::rollBack();
 			throw $e;
 		}
-	
+
 		// delete all board files
 		$boardDir = self::GetBoardContentDir($boardID);
 		Utils::DeleteDir($boardDir);
@@ -984,7 +984,7 @@ class API
 			http_response_code(500);
 			exit("Import Failed: export zip not found.");
 		}
-		
+
 		// unzip db content
 		$boardExportData = array();
 		{
@@ -1031,7 +1031,7 @@ class API
 					DB::$qparams[] = $curList["name"]; // name
 					DB::$qparams[] = $cardlistIndex[$curList["prev_list_id"]]; // prev_list_id
 					DB::$qparams[] = $cardlistIndex[$curList["next_list_id"]]; // next_list_id
-				
+
 					// add query format
 					$addCardlistsQuery .= ($i > 0 ? ", " : "") . $cardlistPlaceholders;
 				}
@@ -1086,7 +1086,7 @@ class API
 					DB::$qparams[] = $curAttachment["extension"]; // extension
 					DB::$qparams[] = $cardIndex[$curAttachment["card_id"]]; // card_id
 					DB::$qparams[] = $newBoardID;// board_id
-				
+
 					// add query format
 					$addAttachmentsQuery .= ($i > 0 ? ", " : "") . $attachmentsPlaceholders;
 				}
@@ -1182,7 +1182,7 @@ class API
 			// create the list
 			$newCardlistData = self::AddNewCardListInternal($newBoardID, $prevCardlistID, $curTrelloList["name"]);
 			$newCardlistID = $newCardlistData["id"];
-			
+
 
 			// collect the trello cards for this list
 			$curTrelloCards = array();
@@ -1330,7 +1330,7 @@ class API
 			$boardLabelNames[] = "";
 			$boardLabelColors[] = "";
 		}
-		
+
 		// add a new label
 		$newLabelColor = self::DEFAULT_LABEL_COLORS[$labelIndex % count(self::DEFAULT_LABEL_COLORS)];
 		$boardLabelNames[$labelIndex] = $newLabelColor;
@@ -1368,7 +1368,7 @@ class API
 		$labelIndex = $request["index"];
 		$boardLabelNames[$labelIndex] = self::CleanLabelName($request["name"]);
 		$boardLabelColors[$labelIndex] = $request["color"];
-		
+
 		// update the board
 		self::UpdateBoardLabelsInternal($request["board_id"], $boardLabelNames, $boardLabelColors);
 		self::UpdateBoardModifiedTime($request["board_id"]);
@@ -1409,7 +1409,7 @@ class API
 			array_pop($boardLabelColors);
 			$labelCount--;
 		}
-		
+
 		// update the board
 		self::UpdateBoardLabelsInternal($request["board_id"], $boardLabelNames, $boardLabelColors);
 		self::UpdateBoardModifiedTime($request["board_id"]);
@@ -1436,7 +1436,7 @@ class API
 			http_response_code(400);
 			exit("Missing parameters: both the label <index> and <active> are required.");
 		}
-		
+
 		// explode board label list
 		$boardLabelNames = explode(",", $boardData["label_names"]);
 		$boardLabelColors = explode(",", $boardData["label_colors"]);
@@ -1560,9 +1560,9 @@ class API
 
 		// add new permission or update existing one
 		if ($boardData["user_type"] == self::USERTYPE_None)
-			$guestPermissionQuery = "INSERT INTO tarallo_permissions (user_id, board_id, user_type) VALUES (:user_id, :board_id, :user_type)";	
-		else 
-			$guestPermissionQuery = "UPDATE tarallo_permissions SET user_type = :user_type WHERE user_id = :user_id AND board_id = :board_id";	
+			$guestPermissionQuery = "INSERT INTO tarallo_permissions (user_id, board_id, user_type) VALUES (:user_id, :board_id, :user_type)";
+		else
+			$guestPermissionQuery = "UPDATE tarallo_permissions SET user_type = :user_type WHERE user_id = :user_id AND board_id = :board_id";
 
 		DB::query($guestPermissionQuery);
 
@@ -1619,7 +1619,7 @@ class API
 		$boardBaseDir = FTPDir("boards/{$boardID}/");
 		$dirIterator = new RecursiveDirectoryIterator($boardBaseDir);
 		$fileIterator = new RecursiveIteratorIterator($dirIterator, RecursiveIteratorIterator::SELF_FIRST);
-		
+
 		foreach ($fileIterator as $file) {
 			if ($file->isDir())
 				continue;
@@ -1724,7 +1724,7 @@ class API
 
 		} while(true);
 	}
-	
+
 	private static function DeleteAttachmentFiles($attachmentRecord)
 	{
 		$attachmentPath = self::GetAttachmentFilePathFromRecord($attachmentRecord);
@@ -2046,7 +2046,7 @@ class API
 			DB::rollBack();
 			throw $e;
 		}
-		
+
 		// re-query the added list and return its data
 		return self::GetCardlistData($boardID, $newListID);
 	}
@@ -2087,7 +2087,7 @@ class API
 	}
 
 	private static function CardRecordToData($cardRecord)
-	{	
+	{
 		$card = array();
 		$card["title"] = $cardRecord["title"];
 		$card["cardlist_id"] = $cardRecord["cardlist_id"];
@@ -2372,7 +2372,7 @@ class API
 	{
 		if ($a["pos"] == $b["pos"])
 			return 0;
-		
+
 		return ($a["pos"] < $b["pos"]) ? -1 : 1;
 	}
 

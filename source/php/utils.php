@@ -24,7 +24,11 @@ class Utils {
 
         // save content to file
         $absPath = FTPDir($filePath);
-        return file_put_contents($absPath, $contents, $flags);
+
+        if (@file_put_contents($absPath, $contents, $flags) === false)
+        {
+            exit(sprintf('Failed to create file "%s". Please check permissions.', $absPath));
+        }
     }
 
     public static function ReadFileAsString($filePath)

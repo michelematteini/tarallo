@@ -365,19 +365,19 @@ class API
 		$openCardQuery .= " WHERE tarallo_cards.id = :id AND tarallo_permissions.user_id = :user_id";
 		DB::setParam("user_id", $_SESSION["user_id"]);
 		DB::setParam("id", $request["id"]);
-
-		// init the response with the card data and its content
 		$cardRecord = DB::fetch_row($openCardQuery);
-		$response = self::CardRecordToData($cardRecord);
-		$response["content"] = $cardRecord["content"];
 
-		self::CheckPermissions($response["user_type"], self::USERTYPE_Observer);
-
-		if (!$response)
+		if (!$cardRecord)
 		{
 			http_response_code(404);
 			exit("The specified id does not exists or the user do not have access to the board.");
 		}
+
+		// init the response with the card data and its content
+		$response = self::CardRecordToData($cardRecord);
+		$response["content"] = $cardRecord["content"];
+
+		self::CheckPermissions($response["user_type"], self::USERTYPE_Observer);
 
 		// fetch attachments
 		$attachmentsQuery = "SELECT * FROM tarallo_attachments WHERE card_id = :card_id";

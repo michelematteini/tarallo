@@ -94,12 +94,14 @@ class API
 		DB::setParam("user_id", $_SESSION["user_id"]);
 		$results = DB::fetch_table($boardsQuery);
 
-		self::CheckPermissions($results["user_type"], self::USERTYPE_Observer);
-
 		// fill an array of all the user boards
 		$boardList = array();
 		foreach ($results as $boardRecord) 
 		{
+			// skip boards that the user cannot even view
+			if (!self::CheckPermissions($results["user_type"], self::USERTYPE_Observer, false))
+				continue;
+
 			$boardList[] = self::BoardRecordToData($boardRecord);
 		}
 
@@ -2190,13 +2192,18 @@ class API
 		DB::query("UPDATE tarallo_boards SET last_modified_time = :last_modified_time WHERE id = :board_id");
 	}
 
-	private static function CheckPermissions($userType, $requestedUserType)
+	private static function CheckPermissions($userType, $requestedUserType, $exitIfFailed = true)
 	{
 		if ($userType > $requestedUserType)
 		{
-			http_response_code(403);
-			exit("Missing permissions to perform the requested operation.");
+			if ($exitIfFailed)
+			{
+				http_response_code(403);
+				exit("Missing permissions to perform the requested operation.");
+			}
+			return false;
 		}
+		return true;
 	}
 
 	private static function GetCardlistData($boardID, $cardlistID)

@@ -11,11 +11,39 @@ const MARKUP_IMAGE_SEP = "](";
 const MARKUP_IMAGE_END = ")";
 const MARKUP_IMAGE_ATTACHMENT = "#"; 
 
+const languages = {
+    'cpp': [
+        ['const', 'int', 'float', 'double'],
+        ['if', 'else', 'for', 'while', 'do', 'break', 'continue', 'return'],
+        ['&&', '||', '==', '!=', '-&gt;', '&gt;', '&lt;', '++', '--']
+    ],
+    'hlsl':[
+        ['int', 'float', 'double', 'float2', 'float3', 'float4', 'float4x4'],
+        ['if', 'else', 'for', 'while', 'do', 'break', 'continue', 'return'],
+        ['&&', '||', '==', '!=', '-&gt;', '&gt;', '&lt;', '++', '--']
+    ]
+};
+
+function ArrayToRegex(lang, index) {
+    const regexBody = languages[lang][index]
+        .join('##')
+        .replaceAll('|', String.raw`\|`)
+        .replaceAll('+', String.raw`\+`)
+        .replaceAll('##', '|');
+
+    if (index < 2)
+        return new RegExp('\\b(' + regexBody + ')\\b', 'g');
+    else
+        return new RegExp('(' + regexBody + ')', 'g');
+}
+
 // converts the db markup language to displayable html
 function ContentMarkupToHtml(markup, attachmentList) {
     let html = "";
     let markupLines = markup.split(MARKUP_LINEBREAK);
     let tagStack = [];
+    let isCodeLine = false;
+    let keywords1 = undefined, keywords2 = undefined, keywords3 = undefined;
 
     // foreach markup line
     for (let i = 0; i < markupLines.length; i++) {
@@ -25,7 +53,16 @@ function ContentMarkupToHtml(markup, attachmentList) {
         const isImage = markupLine.startsWith(MARKUP_IMAGE_START) && markupLine.endsWith(MARKUP_IMAGE_END) && markupLine.includes(MARKUP_IMAGE_SEP);
 
         // === convert inline tokens
-        if (!isImage) {
+        if (isCodeLine && keywords1) {
+            // code: label all keywords
+            markupLine = markupLine.replaceAll(keywords1, "##1$1##e"); // keywords1
+            markupLine = markupLine.replaceAll(keywords2, "##2$1##e"); // keywords2
+            markupLine = markupLine.replaceAll(keywords3, "##3$1##e"); // keywords3
+            // translate keywords to html
+            markupLine = markupLine.replaceAll(/##(\d)/g, "<span class='keyword$1'>");
+            markupLine = markupLine.replaceAll(/##e/g, "</span>");
+        } else if (!isImage) {
+            // generic text
             markupLine = markupLine.replaceAll(/\*\*(.*?)\*\*/g, "<b>$1</b>"); // bold
             markupLine = markupLine.replaceAll(/`([^`]+?)`/g, "<span class=\"monospace\">$1</span>"); // monospace
             const mouseDownJS = "window.open(\"$1\", \"_blank\"); event.preventDefault();";
@@ -85,20 +122,34 @@ function ContentMarkupToHtml(markup, attachmentList) {
             lineHtml += markupLine.substring(markupLine.indexOf(".") + 2);
             lineHtml += "</li>";
         } else if (markupLine.startsWith(MARKUP_CODE_MULTILINE)) {
-            if (tagStack[tagStack.length - 1] !== "</div></div>") {
+            const multlineClosingTag = "</pre></div>";
+            if (tagStack[tagStack.length - 1] !== multlineClosingTag) {
+                const langName = markupLine.substring(MARKUP_CODE_MULTILINE.length).trim();
+
                 // start of multiline code block
-                lineHtml += "<div class=\"multiline-container\">";
+                lineHtml += `<div class="multiline-container">`;
                 // copy to clipboard button
                 lineHtml += "<span contenteditable=false class='copy-btn'><svg class=\"dim-icon\"><use href=\"#icon-copy\" /></svg></span>";
                 // monospace code block
-                lineHtml += "<div class=\"monospace\">";
+                lineHtml += `<pre class="monospace" lang="${langName}">`;
 
-                tagStack.push("</div></div>");
+                // create regex for the specified language
+                if (langName.length > 0 && languages[langName]) {
+                    keywords1 = ArrayToRegex(langName, 0);
+                    keywords2 = ArrayToRegex(langName, 1);
+                    keywords3 = ArrayToRegex(langName, 2);
+                }
+
+                tagStack.push(multlineClosingTag);
+                isCodeLine = true;
             } else {
                 // end of multiline code block
                 lineHtml += tagStack.pop();
+                isCodeLine = false;
+                keywords1 = undefined;
+                keywords2 = undefined;
+                keywords3 = undefined;
             }
-            lineHtml += markupLine.substring(MARKUP_CODE_MULTILINE.length);
         } else if (isImage) {
             // image markup
             const imageMarkupElems = markupLine.substring(MARKUP_TITLE.length, markupLine.length - MARKUP_IMAGE_END.length).split(MARKUP_IMAGE_SEP);
@@ -173,9 +224,6 @@ function HtmlNodeToMarkup(htmlNode) {
         // perform custom behaviours for specific tags
         switch (childNode.nodeName) {
             case "DIV":
-                if (childNode.classList.contains("monospace")) {
-                    outerHTML = MARKUP_CODE_MULTILINE + MARKUP_LINEBREAK + outerHTML + MARKUP_CODE_MULTILINE;
-                }
                 // add a new line, unless the div is empty, or terminate with a line break
                 const childNodeCount = childNode.childNodes.length;
                 if (childNodeCount > 0 && childNode.childNodes[childNodeCount - 1].nodeName !== "BR") {
@@ -226,6 +274,11 @@ function HtmlNodeToMarkup(htmlNode) {
             case "SPAN":
                 if (childNode.classList.contains("monospace")) {
                     outerHTML = "`" + outerHTML + "`";
+                }
+                break;
+            case "PRE":
+                if (childNode.classList.contains("monospace")) {
+                    outerHTML = MARKUP_CODE_MULTILINE + childNode.getAttribute("lang") + MARKUP_LINEBREAK + outerHTML + MARKUP_CODE_MULTILINE;
                 }
                 break;
             // tags that will be completely removed, content included

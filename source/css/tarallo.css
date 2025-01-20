@@ -588,14 +588,27 @@ a:hover {
         position: relative;
     }
 
-    .opencard-content .multiline-container div.monospace {
-        margin-top: 0.5rem;
-        padding: 1.0rem 0rem 0.5rem 2rem;
-        border-left: solid 0.5rem var(--bg-color-4);
-        overflow-x: auto;
-        white-space: nowrap;
-        box-sizing: border-box;
-    }
+        .opencard-content .multiline-container .monospace {
+            margin-top: 0.5rem;
+            padding: 1.0rem 0rem 0.5rem 2rem;
+            border-left: solid 0.5rem var(--bg-color-4);
+            overflow-x: auto;
+            box-sizing: border-box;
+        }
+
+.keyword1 {
+    color: var(--label-color-blue);
+    font-weight: bold;
+}
+
+.keyword2 {
+    color: var(--label-color-purple);
+}
+
+.keyword3 {
+    color: var(--label-color-grey);
+    font-weight: bold;
+}
 
         .opencard-content .multiline-container .copy-btn {
             position: absolute;

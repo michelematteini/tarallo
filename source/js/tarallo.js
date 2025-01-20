@@ -1485,14 +1485,20 @@ class TaralloClient {
 						selection.deleteFromDocument();
 						const curSelection = selection.getRangeAt(0);
 
+						// retrieve the html element enclosing this selection
+						let destElem = selection.anchorNode;
+						while (!(destElem instanceof HTMLElement))
+							destElem = destElem.parentElement;
+
 						// check where the text is pasted
-						const destElem = selection.anchorNode.parentElement;
-						if (destElem.classList.contains("opencard-content")) {
+						if (destElem.closest(".opencard-content")) {
 							// pasting as card content, divide in lines
 							const pastedLines = pastedText.split("\n");
-							for (const textLine of pastedLines) {
-								curSelection.insertNode(document.createElement("BR"));
-								curSelection.insertNode(document.createTextNode(textLine));
+							for (let li = 0; li < pastedLines.length; li++) {
+								curSelection.insertNode(document.createTextNode(pastedLines[li]));
+								if (li > 0) {
+									curSelection.insertNode(document.createElement("BR"));
+								}
 								curSelection.setStart(curSelection.endContainer, curSelection.endOffset);
 							}
 						} else {

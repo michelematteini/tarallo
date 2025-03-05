@@ -154,6 +154,15 @@ class TaralloClient {
 		TaralloUtils.SetEventById("trello-import-btn", "onclick", () => this.UiImportFromTrello());
 	}
 
+	// load a page that display first startup info about the instance
+	LoadFirstStartupPage(contentObj) {
+		TaralloUtils.ReplaceContentWithTemplate("tmpl-firststartup", contentObj);
+		document.title = "Tarallo - First Startup";
+		
+		// add events
+		TaralloUtils.SetEventById("continue-btn", "onclick", () => this.ReloadContent());
+	}
+
 	LoadLabel(templateName, labelName, labelColor, additionalParams = []) {
 		const labelData = additionalParams;
 		labelData["name"] = labelName;
@@ -539,6 +548,9 @@ class TaralloClient {
 		const pageContent = jsonResponseObj["page_content"];
 		const pageName = jsonResponseObj["page_name"];
 		switch (pageName) {
+			case "FirstStartup":
+				this.LoadFirstStartupPage(pageContent);
+				break;
 			case "Login":
 				this.LoadLoginPage(pageContent);
 				break;
@@ -1190,6 +1202,17 @@ class TaralloClient {
 		TaralloUtils.SelectFileDialog("image/*", false, (file) => this.OnBackgroundSelected(file, boardID));
 	}
 
+	LoadUserPermissionEntry(permissionObj) {
+		const permissionElem = TaralloUtils.LoadTemplate("tmpl-share-dialog-entry", permissionObj);
+
+		const permissionSelectElem = permissionElem.querySelector(".permission");
+		permissionSelectElem.onchange = () => this.UiUserPermissionChanged(permissionSelectElem, permissionObj["user_id"]);
+		const selectedOptionElem = permissionSelectElem.querySelector(`option[value='${permissionObj["user_type"]}']`);
+		selectedOptionElem.setAttribute("selected", "true");
+
+		return permissionElem;
+	}
+
 	LoadShareDialog(jsonResponseObj) {
 		// initialize the share dialog
 		const shareDialogElem = TaralloUtils.LoadTemplate("tmpl-share-dialog", jsonResponseObj);
@@ -1197,16 +1220,32 @@ class TaralloClient {
 		const permissionListElem = shareDialogElem.querySelector("#share-dialog-list");
 		const dialogButtons = permissionListElem.querySelector(".share-dialog-entry");
 
+		// add site admin permissions
+		if (jsonResponseObj["is_admin"]) {
+
+			// func to append a special permission element (whether it already exist or not in the DB)
+			const AddSpecialPermission = (userId, permissionName, description) => {
+				const permission = jsonResponseObj["permissions"].find((p) => p["user_id"] == userId);
+				const permissionObj = {
+					"display_name": permissionName, 
+					"user_id" : userId, 
+					"user_type" : permission ? permission["user_type"] : 10, 
+					"class_list": "special-text",
+					"hover_text": description
+				};
+				const permissionElem = this.LoadUserPermissionEntry(permissionObj);
+				permissionListElem.insertBefore(permissionElem, dialogButtons);
+			}
+
+			// add on registration board permissions
+			AddSpecialPermission(-1, "On registration", "Permission for this board that is automatically assigned to new users on registration");
+		}
+
 		// add all permission rows
 		for (const permission of jsonResponseObj["permissions"]) {
-			const permissionElem = TaralloUtils.LoadTemplate("tmpl-share-dialog-entry", permission);
-
-			const permissionSelectElem = permissionElem.querySelector(".permission");
-			permissionSelectElem.onchange = () => this.UiUserPermissionChanged(permissionSelectElem, permission["user_id"]);
-			const selectedOptionElem = permissionSelectElem.querySelector(`option[value='${permission["user_type"]}']`);
-			selectedOptionElem.setAttribute("selected", "true");
-
-			permissionListElem.insertBefore(permissionElem, dialogButtons);
+			if (permission["user_id"] < 0)
+				continue; // skip special 
+			permissionListElem.insertBefore(this.LoadUserPermissionEntry(permission), dialogButtons);
 		}
 
 		// add the dialog to the content

@@ -69,6 +69,10 @@
     background-color: var(--label-color-grey);
 }
 
+.special-text {
+    color: var(--text-color-3);
+}
+
 * {
     margin: 0;
     font-family: Sans-Serif;
@@ -289,6 +293,10 @@ a:hover {
 
 #login-form {
     flex-basis: 13rem;
+}
+
+#first-startup-diag {
+    flex-basis: 22em;
 }
 
 #login-error {

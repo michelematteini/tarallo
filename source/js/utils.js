@@ -5,9 +5,12 @@ class TaralloUtils {
 		let html = templateHtml;
 		for (const argName in args) {
 			if (Object.hasOwn(args, argName)) {
+				html = html.replaceAll("$" + argName + ":optional", args[argName]);
 				html = html.replaceAll("$" + argName, args[argName]);
 			}
 		}
+		// remove unused optional args
+		html = html.replaceAll(/\$\w*:optional/g, "");
 
 		return html;
 	}

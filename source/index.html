@@ -7,6 +7,24 @@
     <link rel="icon" type="image/png" sizes="64x64" href="images/favicon-large.png">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
     <link href="css/tarallo.css" rel="stylesheet" type="text/css" />
+    <template id="tmpl-firststartup">
+        <div class="centered-container">
+            <div id="first-startup-diag" class="centered-dialog dialog">
+                <h1>Welcome to Tarallo!</h1>
+                <p class="dim-text">Your Tarallo instance has just been initialized.</p>
+                <p class="separator">A new administrator account has been created:</p>
+                <label>Username</label>
+                <input value="$admin_user" readonly>
+                <label>Password</label>
+                <input value="$admin_pass" readonly>
+                <p class="popup persistent yellow text-center">NB: This account credentials won't be shown again so save them!</p>
+                <button id="continue-btn" class="contrast-btn separator">Continue to Tarallo</button>
+            </div>
+        </div>
+        <div id="footer">
+            Sources: <a href="https://github.com/michelematteini/tarallo">Github repository</a> | DB Version: $db_version
+        </div>
+    </template>
     <template id="tmpl-login">
         <div class="centered-container">
             <div id="login-form" class="centered-dialog dialog">
@@ -160,7 +178,7 @@
             <div id="unaccessibleboard" class="centered-dialog dialog">
                 <h1>You are not a member of this board.</h1>
                 <button id="unaccessibleboard-request-btn" class="contrast-btn">Request access</button>
-                <p id="unaccessibleboard-waiting-label" class="hidden">Access has been requested to an admin, refresh this page when authorized.</p>
+                <p id="unaccessibleboard-waiting-label" class="hidden">Access has been requested to a moderator, refresh this page when authorized.</p>
             </div>
         </div>
     </template>
@@ -274,11 +292,11 @@
     </template>
     <template id="tmpl-share-dialog-entry">
         <div class="share-dialog-entry">
-            <label class="share-dialog-item">$display_name</label>
+            <label class="share-dialog-item $class_list:optional">$display_name</label>
             <div class="share-dialog-item">
-                <select class="permission" dbvalue="$user_type" dbuser="$user_id">
+                <select class="permission" dbvalue="$user_type" dbuser="$user_id" title="$hover_text:optional">
                     <option value="0">Owner</option>
-                    <option value="2">Administrator</option>
+                    <option value="2">Moderator</option>
                     <option value="6">Member</option>
                     <option value="8">Observer</option>
                     <option value="9">Guest</option>

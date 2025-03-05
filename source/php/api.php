@@ -36,15 +36,16 @@ class API
 
 	// user types for the permission table
 	const USERTYPE_Owner = 0; // full-control of the board
-	const USERTYPE_Admin = 2; // full-control of the board, exept a few functionalities like board permanent deletion
+	const USERTYPE_Moderator = 2; // full-control of the board, except a few functionalities like board permanent deletion
 	const USERTYPE_Member = 6; // full-control of the cards but no access to board layout and options
 	const USERTYPE_Observer = 8; // read-only access to the board
 	const USERTYPE_Guest = 9; // no access, but user requested to join the board
-	const USERTYPE_Blocked = 10; // no access (blocked by a board admin)
+	const USERTYPE_Blocked = 10; // no access (blocked by a board moderator)
 	const USERTYPE_None = 11; // no access (no record on db)
 
 	// special user IDs
 	const USERID_ONREGISTER = -1; // if a permission record on the permission table has this user_id, the permission will be copied to any new registered user
+	const USERID_MIN = self::USERID_ONREGISTER; // this should be the minimun special user ID
 
 	// request the page that should be displayed for the current state
 	public static function GetCurrentPage($request)
@@ -65,17 +66,32 @@ class API
 		} 
 		else 
 		{
-			//prepare login page
-
 			$settings = self::GetDBSettings();
 
 			// load and apply db updates if any
 			self::ApplyDBUpdates($settings["db_version"]);
 
-			// prepare login page data
-			$response["page_name"] = "Login";
-			$response["page_content"] = $settings;
-			$response["page_content"]["background_img_url"] = self::DEFAULT_BG;
+			if ($settings["perform_first_startup"]) 
+			{
+				// create an admin account for the first startup
+				$adminAccount = self::CreateNewAdminAccount();
+				
+				// mark the first startup as completed
+				self::SetDBSetting("perform_first_startup", 0);
+				
+				// prepare first startup page data
+				$response["page_name"] = "FirstStartup";
+				$response["page_content"] = $settings;
+				$response["page_content"]["admin_user"] = $adminAccount["username"];
+				$response["page_content"]["admin_pass"] = $adminAccount["password"];
+			}
+			else 
+			{
+				// prepare login page data
+				$response["page_name"] = "Login";
+				$response["page_content"] = $settings;
+				$response["page_content"]["background_img_url"] = self::DEFAULT_BG;
+			}
 		}
 
 		return $response;
@@ -228,6 +244,7 @@ class API
 		$_SESSION["user_id"] = $userRecord["id"];
 		$_SESSION["username"] = $userRecord["username"];
 		$_SESSION["display_name"] = $userRecord["display_name"];
+		$_SESSION["is_admin"] = $userRecord["is_admin"];
 
 		// update last login time in db
 		$updateLoginTimeQuery = "UPDATE tarallo_users SET last_access_time = :last_access_time WHERE id = :user_id";
@@ -293,26 +310,14 @@ class API
 		}
 
 		// check if the specified username already exists
-		$userQuery = "SELECT COUNT(*) FROM tarallo_users where username = :username";
-		DB::setParam("username", $request["username"]);
-		$userExists = DB::query_one_result($userQuery);
-			
-		if ($userExists) 
+		if (self::UsernameExists($request["username"])) 
 		{
 			http_response_code(400);
 			exit("Username already in use! Try another one.");
 		}
 
 		// add the new user record to the DB
-		$passwordHash = password_hash($request["password"], PASSWORD_DEFAULT);
-		$addUserQuery = "INSERT INTO tarallo_users (username, password, display_name, register_time, last_access_time)";
-		$addUserQuery .= " VALUES(:username, :password, :display_name, :register_time, 0)";
-		DB::setParam("username", $request["username"]);
-		DB::setParam("password", $passwordHash);
-		DB::setParam("display_name", $cleanDisplayName);
-		DB::setParam("register_time", time());
-		$userID = DB::query($addUserQuery, true);
-
+		$userID = self::AddUserInternal($request["username"], $request["password"], $cleanDisplayName);
 		if (!$userID) 
 		{
 			http_response_code(500);
@@ -327,10 +332,15 @@ class API
 		{
 			$addPermsQuery = "INSERT INTO tarallo_permissions (user_id, board_id, user_type) VALUES ";
 			$recordPlaceholders = "(?, ?, ?)";
+			$firstInitialPermission = true;
 			// foreach permission...
 			for ($i = 0; $i < $initialPermissionCount; $i++) 
 			{
 				$curPermissions = $initialPermissions[$i];
+
+				// skip blocked initial permissions 
+				if ($curPermissions["user_type"] == self::USERTYPE_Blocked)
+					continue;
 
 				// add query parameters
 				DB::$qparams[] = $userID;
@@ -338,7 +348,8 @@ class API
 				DB::$qparams[] = $curPermissions["user_type"];
 
 				// add query format
-				$addPermsQuery .= ($i > 0 ? ", " : "") . $recordPlaceholders;
+				$addPermsQuery .= (!$firstInitialPermission ? ", " : "") . $recordPlaceholders;
+				$firstInitialPermission = false;
 			}
 
 			// add all the initial permissions
@@ -488,7 +499,7 @@ class API
 	public static function MoveCardList($request)
 	{
 		// query and validate board id
-		$boardData = self::GetBoardData($request["board_id"], self::USERTYPE_Admin);
+		$boardData = self::GetBoardData($request["board_id"], self::USERTYPE_Moderator);
 
 		//query and validate cardlist id
 		$cardListData = self::GetCardlistData($request["board_id"], $request["moved_cardlist_id"]);
@@ -1478,21 +1489,38 @@ class API
 
 	public static function GetBoardPermissions($request) {
 		// query and validate board id
-		$boardData = self::GetBoardData($request["board_id"], self::USERTYPE_Admin);
+		$boardData = self::GetBoardData($request["board_id"], self::USERTYPE_Moderator);
 
 		// query permissions for this board
 		$boardPermissionsQuery = "SELECT tarallo_permissions.user_id, tarallo_users.display_name, tarallo_permissions.user_type";
-		$boardPermissionsQuery .= " FROM tarallo_permissions INNER JOIN tarallo_users ON tarallo_permissions.user_id = tarallo_users.id";
+		$boardPermissionsQuery .= " FROM tarallo_permissions LEFT JOIN tarallo_users ON tarallo_permissions.user_id = tarallo_users.id";
 		$boardPermissionsQuery .= " WHERE board_id = :board_id";
 		DB::setParam("board_id", $request["id"]);
 		$boardData["permissions"] = DB::fetch_table($boardPermissionsQuery);
+		$boardData["is_admin"] = $_SESSION["is_admin"];
 
 		return $boardData;
 	}
 
 	public static function SetUserPermission($request) {
 		// query and validate board id
-		$boardData = self::GetBoardData($request["board_id"], self::USERTYPE_Admin);
+		$boardData = self::GetBoardData($request["board_id"], self::USERTYPE_Moderator);
+		$isSpecialPermission = $request["user_id"] < 0;
+
+		if ($isSpecialPermission)
+		{
+			if (!$_SESSION["is_admin"]) 
+			{
+				http_response_code(403);
+				exit("Special permissions are only available to site admins.");
+			}
+
+			if ($request["user_id"] < self::USERID_MIN)
+			{
+				http_response_code(400);
+				exit("Invalid special permission.");
+			}
+		}
 
 		if ($request["user_id"] == $_SESSION["user_id"]) 
 		{
@@ -1502,7 +1530,7 @@ class API
 
 		if ($request["user_type"] <= $boardData["user_type"]) 
 		{
-			http_response_code(400);
+			http_response_code(403);
 			exit("Cannot assign this level of permission.");
 		}
 
@@ -1513,25 +1541,34 @@ class API
 		DB::setParam("user_id", $request["user_id"]);
 		$permission = DB::fetch_row($boardPermissionsQuery);
 
-		if (!$permission) 
+		if (!$isSpecialPermission)
 		{
-			http_response_code(404);
-			exit("No permission for the specified user was found!");
+			if (!$permission) 
+			{
+				http_response_code(404);
+				exit("No permission for the specified user was found!");
+			}
+
+			if ($permission["user_type"] <= $boardData["user_type"])
+			{
+				http_response_code(403);
+				exit("Cannot edit permissions for this user.");
+			}
 		}
 
-		if ($permission["user_type"] <= $boardData["user_type"])
-		{
-			http_response_code(404);
-			exit("Cannot edit permissions for this user.");
-		}
-
-
-		// update permission
-		$updatePermissionQuery = "UPDATE tarallo_permissions SET user_type = :user_type WHERE board_id = :board_id AND user_id = :user_id";
 		DB::setParam("board_id", $request["board_id"]);
 		DB::setParam("user_id", $request["user_id"]);
 		DB::setParam("user_type", $request["user_type"]);
-		DB::query($updatePermissionQuery);
+		if ($permission) 
+		{
+			// update permission
+			DB::query("UPDATE tarallo_permissions SET user_type = :user_type WHERE board_id = :board_id AND user_id = :user_id");
+		} 
+		else // if ($isSpecialPermission)
+		{
+			// add permission (only special permissions can be added here if not present)
+			DB::query("INSERT INTO tarallo_permissions (user_id, board_id, user_type) VALUES (:user_id, :board_id, :user_type)");
+		}
 
 		self::UpdateBoardModifiedTime($request["board_id"]);
 
@@ -1581,7 +1618,7 @@ class API
 		}
 
 		// query and validate board id and access level
-		$boardData = self::GetBoardData($request["board_id"], self::USERTYPE_Admin);
+		$boardData = self::GetBoardData($request["board_id"], self::USERTYPE_Moderator);
 		$boardID = $boardData["id"];
 
 		// create a zip for the export
@@ -2387,9 +2424,69 @@ class API
 		return DB::query_one_result("SELECT value FROM tarallo_settings WHERE name = :name");
 	}
 
+	private static function SetDBSetting($name, $value)
+	{
+		DB::setParam("name", $name);
+		DB::setParam("value", $value);
+		return DB::query("UPDATE tarallo_settings SET value = :value WHERE name = :name");
+	}
+
 	private static function GetDBSettings()
 	{
 		return DB::fetch_assoc("SELECT name, value FROM tarallo_settings", "name", "value");
+	}
+
+	private static function UsernameExists($username) 
+	{
+		// check if the specified username already exists
+		$userQuery = "SELECT COUNT(*) FROM tarallo_users where username = :username";
+		DB::setParam("username", $username);
+
+		return DB::query_one_result($userQuery);
+	}
+
+	private static function AddUserInternal($username, $password, $displayName, $isAdmin = false)
+	{
+		// add the new user record to the DB
+		$passwordHash = password_hash($password, PASSWORD_DEFAULT);
+		$addUserQuery = "INSERT INTO tarallo_users (username, password, display_name, register_time, last_access_time, is_admin)";
+		$addUserQuery .= " VALUES(:username, :password, :display_name, :register_time, 0, :is_admin)";
+		DB::setParam("username", $username);
+		DB::setParam("password", $passwordHash);
+		DB::setParam("display_name", $displayName);
+		DB::setParam("register_time", time());
+		DB::setParam("is_admin", $isAdmin ? 1 : 0);
+		$userID = DB::query($addUserQuery, true);
+		return $userID;
+	}
+
+	private static function CreateNewAdminAccount()
+	{
+		$account = array();
+		$account["username"] = "admin";
+
+		// find the first available admin* account name
+		{
+			$userQuery = "SELECT username FROM tarallo_users where username LIKE 'admin%'";
+			$usedAdminNames = DB::fetch_array($userQuery, "username");
+			for ($i = 0; in_array($account["username"], $usedAdminNames); $account["username"] = "admin" . ++$i) ;
+		}
+
+		// generate a random password for it
+		{
+			$passBytes = openssl_random_pseudo_bytes(24);
+			$account["password"] = rtrim(strtr(base64_encode($passBytes), '+/', '-_'), '=');
+		}
+	
+		// add the new user record to the DB
+		$account["id"] = self::AddUserInternal($account["username"], $account["password"], "Admin", true);
+		if (!$account["id"])
+		{
+			http_response_code(500);
+			exit("Failed to create admin account (DB error).");
+		}
+
+		return $account;
 	}
 }
 

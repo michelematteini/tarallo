@@ -8,6 +8,7 @@
     --text-color-2: #eee;
     --text-color-3: #ac8656;
     --text-color-4: #666;
+    --text-color-5: #0df;
     --accent-color-1: #106275;
     --bnt-color-1: #55a7ff;
     --bnt-active-color-1: #90c6ff;
@@ -69,8 +70,12 @@
     background-color: var(--label-color-grey);
 }
 
-.special-text {
-    color: var(--text-color-3);
+.contrast-text {
+    color: var(--text-color-5);
+}
+
+.warning {
+    background-color: var(--label-color-yellow);
 }
 
 * {

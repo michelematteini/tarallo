@@ -1230,7 +1230,7 @@ class TaralloClient {
 					"display_name": permissionName, 
 					"user_id" : userId, 
 					"user_type" : permission ? permission["user_type"] : 10, 
-					"class_list": "special-text",
+					"class_list": "contrast-text",
 					"hover_text": description
 				};
 				const permissionElem = this.LoadUserPermissionEntry(permissionObj);

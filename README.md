@@ -15,8 +15,7 @@ You will also be able to access a showcase board.
 ### On an existing web server
 1. copy the content of `source/` to your web server (sub-directories work fine)
 2. modify `php/config.php` to set `DB_DSN` to the db connection string (and optionally other parameters).
-3. run `db/init_db.sql` on your DB
-4. ensure the `source/` directory is writable by the application by setting the appropriate permissions: `sudo chmod -R 777 source`
+3. ensure the `source/` directory is writable by the application by setting the appropriate permissions: `sudo chmod -R 777 source`
 
 
 ### Docker

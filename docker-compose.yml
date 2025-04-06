@@ -28,5 +28,3 @@ services:
       MARIADB_PASSWORD: $DB_PASSWORD
     volumes:
       - ./mariadb:/var/lib/mysql:Z
-      # this loads any .sql files from db/ into database upon initial creation
-      - ./db:/docker-entrypoint-initdb.d:ro

@@ -50,6 +50,18 @@ class API
 	// request the page that should be displayed for the current state
 	public static function GetCurrentPage($request)
 	{
+		$dbExists = DB::query_one_result("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'tarallo_settings'") > 0;
+		
+		if (!$dbExists) {
+			// first startup without db, try to reset state and load the db
+			self::LogoutInternal();
+
+			if(!self::TryApplyingDBPatch("dbpatch/init_db.sql")) {
+				http_response_code(500);
+				exit("Failed to initialize the DB or the DB is currupted.");
+			}
+		}
+
 		$response = array();
 		if (isset($_SESSION["logged_in"])) 
 		{
@@ -69,7 +81,11 @@ class API
 			$settings = self::GetDBSettings();
 
 			// load and apply db updates if any
-			self::ApplyDBUpdates($settings["db_version"]);
+			$anyUpdateApplied = self::ApplyDBUpdates($settings["db_version"]);
+			if ($anyUpdateApplied) {
+				// update settings cache after any update
+				$settings = self::GetDBSettings();
+			}
 
 			if ($settings["perform_first_startup"]) 
 			{
@@ -975,7 +991,7 @@ class API
 
 	public static function ImportBoard($request)
 	{
-		if (!self::GetDBSetting("board_import_enabled"))
+		if (!$_SESSION["is_admin"] && !self::GetDBSetting("board_import_enabled"))
 		{
 			http_response_code(403);
 			exit("Board import is disabled on this server!");
@@ -1081,6 +1097,7 @@ class API
 			}
 
 			// add attachments
+			if (count($boardExportData["attachments"]) > 0)
 			{
 				// prepare a query to add all the attachments
 				$addAttachmentsQuery = "INSERT INTO tarallo_attachments (id, name, guid, extension, card_id, board_id) VALUES ";
@@ -1138,7 +1155,7 @@ class API
 
 	public static function ImportFromTrello($request) 
 	{
-		if (!self::GetDBSetting("trello_import_enabled"))
+		if (!$_SESSION["is_admin"] && !self::GetDBSetting("trello_import_enabled"))
 		{
 			http_response_code(403);
 			exit("Importing boards from Trello is disabled on this server!");
@@ -1611,7 +1628,7 @@ class API
 
 	public static function ExportBoard($request)
 	{
-		if (!self::GetDBSetting("board_export_enabled"))
+		if (!$_SESSION["is_admin"] && !self::GetDBSetting("board_export_enabled"))
 		{
 			http_response_code(403);
 			exit("Board export is disabled on this server!");
@@ -1699,10 +1716,10 @@ class API
 		switch ($request["context"])
 		{
 			case "ImportBoard":
-				if (!self::GetDBSetting("board_import_enabled"))
+				if (!$_SESSION["is_admin"] && !self::GetDBSetting("board_import_enabled"))
 				{
 					http_response_code(403);
-					exit("Board import is disabled on this server!");
+					exit("Board import is disabled on this server! (upload)");
 				}
 				$destFilePath = self::TEMP_EXPORT_PATH;
 				break;
@@ -1739,8 +1756,20 @@ class API
 		DB::query("UPDATE tarallo_boards SET label_names = :label_names, label_colors = :label_colors WHERE id = :board_id");
 	}
 
+	private static function TryApplyingDBPatch($sqlFilePath) 
+	{
+		if (!Utils::FileExists($sqlFilePath))
+			return false;
+
+		// load sql patch file and execute it
+		$sql = Utils::ReadFileAsString($sqlFilePath);
+		DB::exec($sql);
+		return true;
+	}
+
 	private static function ApplyDBUpdates($dbVersion)
 	{
+		$anyUpdateApplied = false;
 		$cleanVersion = (int)str_replace("1-", "", $dbVersion); // clean old version format
 
 		// check if new updates are available and apply them
@@ -1749,17 +1778,18 @@ class API
 			// check if the next version patch file exists
 			$nextVersion = $cleanVersion + 1;
 			$dbUpdatePatch = "dbpatch/update_{$cleanVersion}_to_{$nextVersion}.sql";
-			if (!Utils::FileExists($dbUpdatePatch))
+			
+			// try applying this patch
+			if (!self::TryApplyingDBPatch($dbUpdatePatch))
 				break; // not available, db is up to date!
-
-			// load sql patch file and execute it
-			$sql = Utils::ReadFileAsString($dbUpdatePatch);
-			DB::exec($sql);
 
 			// check the next version
 			$cleanVersion = $nextVersion;
+			$anyUpdateApplied = true;
 
 		} while(true);
+
+		return $anyUpdateApplied;
 	}
 
 	private static function DeleteAttachmentFiles($attachmentRecord)

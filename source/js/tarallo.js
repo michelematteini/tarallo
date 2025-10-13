@@ -178,6 +178,14 @@ class TaralloClient {
 		if (cardData["last_moved_date"] !== undefined) {
 			newCardElem.querySelector(".card-moved-date").classList.remove("hidden");
 		}
+		// display content icon
+		if (cardData["card_have_content"]) {
+			newCardElem.querySelector(".card-have-content").classList.remove("hidden");
+		}
+		// display checklist stats
+		if (cardData["total_check_list_items"]) {
+			newCardElem.querySelector(".card-checklist-stats").classList.remove("hidden");
+		}
 
 		if (cardData["cover_img_url"]) {
 			// set cover image

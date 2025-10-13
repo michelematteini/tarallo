@@ -287,7 +287,7 @@ a:hover {
         margin-left: 0.6rem;
     }
 
-    .projectbar-tile h2 {
+    .projectbar-tile [contentEditable]:focus {
         outline: none;
     }
 
@@ -362,6 +362,18 @@ a:hover {
     user-select: none;
     cursor: pointer;
 }
+
+    .card .summary {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+        .card .summary div {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin: 0 0.5rem;
+        }
+
 
 .addcard-btn {
     background: var(--bg-color-3);
@@ -557,6 +569,10 @@ a:hover {
     margin: 1.0rem;
     border-radius: var(--border-radius);
 }
+
+    .opencard-content:empty:not(:focus):before {
+        content: attr(data-placeholder)
+    }
 
     .opencard-content input[type=checkbox] {
         width: 1.3rem;
@@ -952,12 +968,6 @@ button {
     margin: 0.1rem 0.2rem;
 }
 
-.card-moved-date {
-    font-size: 0.9rem;
-    font-weight: bold;
-    margin: 0 0.5rem;
-}
-
 .label-diag {
     position: absolute;
     flex-direction: column;    
@@ -1010,6 +1020,7 @@ button {
 
     #share-dialog-list .share-dialog-entry {
         display: flex;
+        justify-content: space-between;
     }
 
     #share-dialog-list .share-dialog-item {

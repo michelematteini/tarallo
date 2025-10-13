@@ -51,6 +51,7 @@ function ContentMarkupToHtml(markup, attachmentList) {
         let markupLine = markupLines[i];
 
         const isImage = markupLine.startsWith(MARKUP_IMAGE_START) && markupLine.endsWith(MARKUP_IMAGE_END) && markupLine.includes(MARKUP_IMAGE_SEP);
+        const isLastLine = (i + 1) === markupLines.length;
 
         // === convert inline tokens
         if (isCodeLine && keywords1) {
@@ -174,7 +175,9 @@ function ContentMarkupToHtml(markup, attachmentList) {
             if (tagStack.length > 0 && !tagStack[tagStack.length - 1].endsWith("</div>")) {
                 lineHtml += tagStack.pop();
             }
-            lineHtml += "<br>";
+            if (!isLastLine) {
+                lineHtml += "<br>";
+            }
         } else {
             // simple text
             lineHtml = "<p>" + markupLine + "</p>";

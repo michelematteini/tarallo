@@ -434,9 +434,9 @@ class API
 			$request["cardlist_id"], 
 			0, // prev_card_id as 0 means adding at the top of the cardlist
 			$request["title"],
-			"Insert the card description here.",
+			"",
 			"0", // cover_attachment_id
-			time(), // last_moved_time
+			0, // last_moved_time
 			0, // label_mask
 			0 // flags
 		);
@@ -2170,6 +2170,16 @@ class API
 		if ($cardRecord["last_moved_time"] != 0) 
 		{
 			$card["last_moved_date"] = date("l, d M Y", $cardRecord["last_moved_time"]);
+		}
+		$card["card_have_content"] = strlen($cardRecord["content"]) > 0;
+		if ($card["card_have_content"]) {
+			$checkedCount = substr_count($cardRecord["content"], "- [x]");
+			$uncheckedCount = substr_count($cardRecord["content"], "- [ ]");
+			$checklistItemCount = $checkedCount + $uncheckedCount;
+			if ($checklistItemCount > 0) {
+				$card["checked_check_list_items"] = $checkedCount;
+				$card["total_check_list_items"] = $checklistItemCount;
+			}
 		}
 		$card = array_merge($card, self::CardFlagMaskToList($cardRecord["flags"]));
 		return $card;

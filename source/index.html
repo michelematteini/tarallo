@@ -201,7 +201,11 @@
             <img class="lazy" src="" data-src="" />
             <div class="card-labellist labellist hidden"></div>
             <p>$title</p>
-            <div class="card-moved-date hidden">&#10149 $last_moved_date</div>
+            <div class="summary">
+                <div class="card-have-content hidden">&#9776;</div>
+                <div class="card-checklist-stats hidden">&#9989; $checked_check_list_items/$total_check_list_items</div>
+                <div class="card-moved-date hidden">&#10149; $last_moved_date</div>
+            </div>
         </div>
     </template>
     <template id="tmpl-card-label">
@@ -223,7 +227,7 @@
                     <h3>Description</h3>
                     <svg class="opencard-lock-btn icon"><use href="#icon-unlocked" /></svg>
                 </div>
-                <div class="opencard-content" contenteditable="true" spellcheck="false">$content</div>
+                <div class="opencard-content" contenteditable="true" spellcheck="false" data-placeholder="Insert the card description here.">$content</div>
                 <h3>
                     Attachments
                     <button class="add-attachment-btn contrast-btn">Add</button>

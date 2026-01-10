@@ -10,6 +10,7 @@ const MARKUP_IMAGE_START = "![";
 const MARKUP_IMAGE_SEP = "](";
 const MARKUP_IMAGE_END = ")";
 const MARKUP_IMAGE_ATTACHMENT = "#"; 
+const MARKUP_INDENT = "    ";
 
 const languages = {
     'cpp': [
@@ -37,13 +38,74 @@ function ArrayToRegex(lang, index) {
         return new RegExp('(' + regexBody + ')', 'g');
 }
 
+function ParseMarkupListItem(markup) {
+    const markupLineNoIndent = markup.trimStart();
+
+    if (markupLineNoIndent.startsWith(MARKUP_LI + MARKUP_CHK_UNCHECKED)) {
+        return {'isListItem': true, 'isOrdererd': false, 'isCheckbox': true, 'isChecked': false, 'prefixLen': MARKUP_LI.length + MARKUP_CHK_UNCHECKED.length };        
+    } else if (markupLineNoIndent.startsWith(MARKUP_LI + MARKUP_CHK_CHECKED)) {
+        return {'isListItem': true, 'isOrdererd': false, 'isCheckbox': true, 'isChecked': true, 'prefixLen': MARKUP_LI.length + MARKUP_CHK_CHECKED.length  };        
+    } else if (markupLineNoIndent.startsWith(MARKUP_LI)) {
+        return {'isListItem': true, 'isOrdererd': false, 'isCheckbox': false, 'isChecked': false, 'prefixLen': MARKUP_LI.length };        
+    } else if (/^\d+?\.\s/.test(markupLineNoIndent)) {
+        return {'isListItem': true, 'isOrdererd': true, 'isCheckbox': false, 'isChecked': false, 'prefixLen': markupLineNoIndent.indexOf(".") + 2 };        
+    }
+
+    return {'isListItem': false, 'isOrdererd': false, 'isCheckbox': false, 'isChecked': false, 'prefixLen': 0 };
+}
+
 // converts the db markup language to displayable html
 function ContentMarkupToHtml(markup, attachmentList) {
     let html = "";
     let markupLines = markup.split(MARKUP_LINEBREAK);
-    let tagStack = [];
     let isCodeLine = false;
     let keywords1 = undefined, keywords2 = undefined, keywords3 = undefined;
+
+
+    // html tag stack tracking
+    let tagStack = [];
+    function getParentTag(level = 1) {
+        if (tagStack.length < level) {
+            return {'name': "html", 'indent': 0, 'islist': false};
+        }
+        return tagStack[tagStack.length - level];
+    }
+    function popTag() {
+        if (tagStack.length === 0) {
+            return "";
+        }
+        const tag = tagStack.pop();
+        return "</" + tag.name + ">";
+    }
+    function pushTag(name) {
+        const newTag = {'name': name, 'indent': 0, 'islist': false};
+        tagStack.push(newTag);
+        return "<" + name + ">";
+    }
+    function pushListTag(name, indent) {
+        const newTag = {'name': name, 'indent': indent, 'islist': true, 'count': 1, 'indentLevel': 0};
+        let result = "";
+        
+        // pop all more nested lists
+        while (getParentTag().indent > indent && getParentTag().islist) {
+            result += popTag();
+        }
+        // pop same indent list if different
+        if (getParentTag().name !== name && getParentTag().indent == indent && getParentTag().islist) {
+            result += popTag();
+        }
+
+        // for lists the push is always called, and automatically skipped here if the indentation matches
+        if (getParentTag().name !== name || getParentTag().islist && getParentTag().indent < indent) {
+            newTag.indentLevel = getParentTag().islist ? getParentTag().indentLevel + 1 : 0;
+            tagStack.push(newTag);
+            result += "<" + name + ">";
+        } else {
+            tagStack[tagStack.length - 1].count++;
+        }
+        
+        return result;
+    }
 
     // foreach markup line
     for (let i = 0; i < markupLines.length; i++) {
@@ -52,6 +114,8 @@ function ContentMarkupToHtml(markup, attachmentList) {
 
         const isImage = markupLine.startsWith(MARKUP_IMAGE_START) && markupLine.endsWith(MARKUP_IMAGE_END) && markupLine.includes(MARKUP_IMAGE_SEP);
         const isLastLine = (i + 1) === markupLines.length;
+        const listItem = ParseMarkupListItem(markupLine);
+        let lineIndent = 0;
 
         // === convert inline tokens
         if (isCodeLine && keywords1) {
@@ -64,74 +128,60 @@ function ContentMarkupToHtml(markup, attachmentList) {
             markupLine = markupLine.replaceAll(/##e/g, "</span>");
         } else if (!isImage) {
             // generic text
-            markupLine = markupLine.replaceAll(/\*\*(.*?)\*\*/g, "<b>$1</b>"); // bold
-            markupLine = markupLine.replaceAll(/`([^`]+?)`/g, "<span class=\"monospace\">$1</span>"); // monospace
-            const mouseDownJS = "window.open(\"$1\", \"_blank\"); event.preventDefault();";
-            markupLine = markupLine.replaceAll(/(https?:\/\/.*?)(\s|$)/g, "<a onmousedown='" + mouseDownJS + "' href='$1' contentEditable='false'>$1</a>$2"); // links
+
+            // calc line indentation
+            for(; lineIndent < markupLine.length && markupLine[lineIndent] === ' '; lineIndent++);
+
+            // bold
+            markupLine = markupLine.replaceAll(/\*\*(.*?)\*\*/g, "<b>$1</b>"); 
+            // monospace
+            markupLine = markupLine.replaceAll(/`([^`]+?)`/g, "<span class=\"monospace\">$1</span>"); 
+            // links
+            const mouseDownJS = "if (event.which == 1) { window.open(\"$1\", \"_blank\"); event.preventDefault(); }";
+            markupLine = markupLine.replaceAll(/(https?:\/\/.*?)(\s|$)/g, "<a onmousedown='" + mouseDownJS + "' href='$1' contentEditable='false'>$1</a>$2"); 
         }
 
         // === convert line start tokens
         let lineHtml = "";
+        const markupLineNoIndent = markupLine.substring(lineIndent);
 
-        if (markupLine.startsWith(MARKUP_TITLE)) {
+        if (markupLineNoIndent.startsWith(MARKUP_TITLE)) {
             // title
-            lineHtml = "<h2>" + markupLine.substring(MARKUP_TITLE.length) + "</h2>";
-        } else if (markupLine.startsWith(MARKUP_SUBTITLE)) {
+            lineHtml = "<h2>" + markupLineNoIndent.substring(MARKUP_TITLE.length) + "</h2>";
+        } else if (markupLineNoIndent.startsWith(MARKUP_SUBTITLE)) {
             // subtitle
-            lineHtml = "<h3>" + markupLine.substring(MARKUP_SUBTITLE.length) + "</h3>";
-        } else if (markupLine.startsWith(MARKUP_SUBTITLE2)) {
+            lineHtml = "<h3>" + markupLineNoIndent.substring(MARKUP_SUBTITLE.length) + "</h3>";
+        } else if (markupLineNoIndent.startsWith(MARKUP_SUBTITLE2)) {
             // subtitle
-            lineHtml = "<h4>" + markupLine.substring(MARKUP_SUBTITLE2.length) + "</h4>";
-        } else if (markupLine.startsWith(MARKUP_LI + MARKUP_CHK_UNCHECKED)) {
-            // unchecked checkbox
-            if (tagStack[tagStack.length - 1] !== "</ul>") {
-                lineHtml += "<ul>";
-                tagStack.push("</ul>");
-            }
-            lineHtml += "<li style=\"list-style-type: none\">";
-            lineHtml += "<span contenteditable=false><input type=\"checkbox\"></span>";
-            lineHtml += markupLine.substring(MARKUP_LI.length + MARKUP_CHK_UNCHECKED.length);
-            lineHtml += "</li>";
-        } else if (markupLine.startsWith(MARKUP_LI + MARKUP_CHK_CHECKED)) {
-            // checked checkbox
-            if (tagStack[tagStack.length - 1] !== "</ul>") {
-                lineHtml += "<ul>";
-                tagStack.push("</ul>");
-            }
-            lineHtml += "<li style=\"list-style-type: none\">";
-            lineHtml += "<span contenteditable=false><input type=\"checkbox\" checked=\"checked\"></span>";
-            lineHtml += markupLine.substring(MARKUP_LI.length + MARKUP_CHK_CHECKED.length);
-            lineHtml += "</li>";
-        } else if (markupLine.startsWith(MARKUP_LI)) {
+            lineHtml = "<h4>" + markupLineNoIndent.substring(MARKUP_SUBTITLE2.length) + "</h4>";
+        } else if (listItem.isListItem) {
             // list item
-            if (tagStack[tagStack.length - 1] !== "</ul>" && tagStack[tagStack.length - 1] !== "</ol>") {
-                lineHtml += "<ul>";
-                tagStack.push("</ul>");
+            lineHtml += pushListTag(listItem.isOrdererd ? "ol" : "ul", lineIndent);
+            let classes = listItem.isOrdererd ? "ordered " : "";
+            let style = listItem.isCheckbox ? "list-style-type: none" : "";
+            if (getParentTag().count === 1) {
+                classes += "first "
             }
-            lineHtml += "<li>";
-            lineHtml += markupLine.substring(MARKUP_LI.length);
-            lineHtml += "</li>";
-        } else if (/^\d+?\.\s/.test(markupLine)) {
-            // ordered list item
-            let classes = "ordered ";
-            if (tagStack[tagStack.length - 1] !== "</ul>" && tagStack[tagStack.length - 1] !== "</ol>") {
-                lineHtml += "<ol>";
-                tagStack.push("</ol>");
-                classes += "first";
+            lineHtml += "<li class='" + classes + "' style='" + style + "' indent=" + getParentTag().indentLevel + ">";
+
+            if (listItem.isCheckbox) {
+                // checkbox
+                lineHtml += "<span contenteditable=false><input type='checkbox'" + (listItem.isChecked ? " checked='checked'" : "") +"></span>";
             }
-            lineHtml += "<li class='" + classes + "'>";
-            lineHtml += markupLine.substring(markupLine.indexOf(".") + 2);
+            lineHtml += markupLineNoIndent.substring(listItem.prefixLen);
             lineHtml += "</li>";
-        } else if (markupLine.startsWith(MARKUP_CODE_MULTILINE)) {
+        } else if (markupLineNoIndent.startsWith(MARKUP_CODE_MULTILINE)) {
             const multlineClosingTag = "</pre></div>";
-            if (tagStack[tagStack.length - 1] !== multlineClosingTag) {
-                const langName = markupLine.substring(MARKUP_CODE_MULTILINE.length).trim();
+            if (getParentTag().name !== "pre") {
+                const langName = markupLineNoIndent.substring(MARKUP_CODE_MULTILINE.length).trim();
 
                 // start of multiline code block
+                pushTag("div");
                 lineHtml += `<div class="multiline-container">`;
                 // copy to clipboard button
                 lineHtml += "<span contenteditable=false class='copy-btn'><svg class=\"dim-icon\"><use href=\"#icon-copy\" /></svg></span>";
                 // monospace code block
+                pushTag("pre");
                 lineHtml += `<pre class="monospace" lang="${langName}">`;
 
                 // create regex for the specified language
@@ -140,12 +190,10 @@ function ContentMarkupToHtml(markup, attachmentList) {
                     keywords2 = ArrayToRegex(langName, 1);
                     keywords3 = ArrayToRegex(langName, 2);
                 }
-
-                tagStack.push(multlineClosingTag);
                 isCodeLine = true;
             } else {
                 // end of multiline code block
-                lineHtml += tagStack.pop();
+                lineHtml += popTag() + popTag();
                 isCodeLine = false;
                 keywords1 = undefined;
                 keywords2 = undefined;
@@ -172,9 +220,12 @@ function ContentMarkupToHtml(markup, attachmentList) {
 
         } else if (markupLine.trim().length == 0) {
             // empty line
-            if (tagStack.length > 0 && !tagStack[tagStack.length - 1].endsWith("</div>")) {
-                lineHtml += tagStack.pop();
+
+            // close lists on empty line
+            while (getParentTag().islist) {
+                lineHtml += popTag();
             }
+
             if (!isLastLine) {
                 lineHtml += "<br>";
             }
@@ -188,7 +239,7 @@ function ContentMarkupToHtml(markup, attachmentList) {
 
     // close all remaining tags
     while (tagStack.length > 0) {
-        html += tagStack.pop();
+        html += popTag();
     }
 
     return html;
@@ -212,7 +263,8 @@ function HtmlNodeToMarkup(htmlNode) {
         return 0;
     }
 
-    let olIndex = 1;
+    let olIndex = 0;
+    let indent = "";
     for (const childNode of curChildNodes) {
 
         if (childNode.nodeName == "#text") {
@@ -249,14 +301,18 @@ function HtmlNodeToMarkup(htmlNode) {
                 outerHTML = MARKUP_SUBTITLE2 + outerHTML + MARKUP_LINEBREAK;
                 break;
             case "LI":
+                let indentSpacing = ""
+                for (let ind = childNode.getAttribute("indent"); ind > 0; ind--) {
+                    indentSpacing += MARKUP_INDENT;
+                }
                 if (childNode.classList.contains("ordered")) {
                     if (childNode.classList.contains("first")) {
                         olIndex = 1;
                     }
-                    outerHTML = olIndex + ". " + outerHTML + MARKUP_LINEBREAK;
+                    outerHTML = indentSpacing + olIndex + ". " + outerHTML + MARKUP_LINEBREAK;
                     olIndex++;
                 } else {
-                    outerHTML = MARKUP_LI + outerHTML + MARKUP_LINEBREAK;
+                    outerHTML = indentSpacing + MARKUP_LI + outerHTML + MARKUP_LINEBREAK;
                 }
                 break;
             case "B":

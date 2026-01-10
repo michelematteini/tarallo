@@ -411,6 +411,8 @@ a:hover {
     top: -0.5rem;
     position: relative;
     width: 16rem;
+    max-height: 20em;
+    object-fit: cover;
 }
 
 .popup {
@@ -568,6 +570,8 @@ a:hover {
     line-height: 1.5rem;
     margin: 1.0rem;
     border-radius: var(--border-radius);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
     .opencard-content:empty:not(:focus):before {

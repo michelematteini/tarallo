@@ -803,6 +803,33 @@ class TaralloClient {
 	}
 
 	SetCardContentEventHandlers(contentElem) {
+		// content events
+		contentElem.onkeydown = (e) => {
+			if (e.keyCode == 9) {
+				// tab key
+				this.PasteText("\u{0009}"); // add tab
+				e.preventDefault(); //prevent focusing on next element
+			}
+		};
+		contentElem.onkeyup = (e) => {
+			if (e.keyCode == 13) {
+				// enter while editing
+				const previousLine = document.getSelection().anchorNode?.previousSibling?.innerHTML;
+				if (previousLine) {
+					// autocomplete next list item
+					const listItem = ParseMarkupListItem(previousLine);
+					if (listItem.isListItem) {
+						const indentLen = previousLine.length - previousLine.trimStart().length;
+						const totItemPrefixLen = indentLen + listItem.prefixLen;
+						if (totItemPrefixLen < previousLine.length) {
+							// automatically add a new list item
+							this.PasteText(previousLine.substring(0, indentLen + listItem.prefixLen));
+						}
+					}
+				}
+			}
+		};
+
 		// checkboxes: their state is immediately committed to the server
 		for (const checkboxElem of contentElem.querySelectorAll("input[type=checkbox]")) {
 			checkboxElem.onchange = () => this.UiCardCheckboxChanged(checkboxElem, contentElem);
@@ -1504,6 +1531,38 @@ class TaralloClient {
 		TaralloServer.AsyncCall("DeleteBoardLabel", args, (response) => this.OnLabelDeleted(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
 	}
 
+	PasteText(text) {
+		const selection = window.getSelection();
+		if (selection.rangeCount) {
+			// delete selected
+			selection.deleteFromDocument();
+			const curSelection = selection.getRangeAt(0);
+
+			// retrieve the html element enclosing this selection
+			let destElem = selection.anchorNode;
+			while (!(destElem instanceof HTMLElement))
+				destElem = destElem.parentElement;
+
+			// check where the text is pasted
+			if (destElem.closest(".opencard-content")) {
+				// pasting as card content, divide in lines
+				const pastedLines = text.split("\n");
+				for (let li = 0; li < pastedLines.length; li++) {
+					curSelection.insertNode(document.createTextNode(pastedLines[li]));
+					if (li > 0) {
+						curSelection.insertNode(document.createElement("BR"));
+					}
+					curSelection.setStart(curSelection.endContainer, curSelection.endOffset);
+				}
+			} else {
+				// pasting as simple text otherwise
+				curSelection.insertNode(document.createTextNode(text));
+			}
+
+			curSelection.setStart(curSelection.endContainer, curSelection.endOffset);
+		}
+	}
+
 	UiPaste(pasteEvent) {
 		const openCardElem = document.querySelector(".opencard"); // search for a destination card
 		const tag = pasteEvent.target.nodeName;
@@ -1525,36 +1584,8 @@ class TaralloClient {
 				pasteEvent.preventDefault();
 			} else if (item.type == "text/plain" && window.getSelection().rangeCount && tag != "INPUT" ) {
 				// pasting text into an editable field: insert as text
-				item.getAsString((pastedText) => {
-					const selection = window.getSelection();
-					if (selection.rangeCount) {
-						// delete selected
-						selection.deleteFromDocument();
-						const curSelection = selection.getRangeAt(0);
-
-						// retrieve the html element enclosing this selection
-						let destElem = selection.anchorNode;
-						while (!(destElem instanceof HTMLElement))
-							destElem = destElem.parentElement;
-
-						// check where the text is pasted
-						if (destElem.closest(".opencard-content")) {
-							// pasting as card content, divide in lines
-							const pastedLines = pastedText.split("\n");
-							for (let li = 0; li < pastedLines.length; li++) {
-								curSelection.insertNode(document.createTextNode(pastedLines[li]));
-								if (li > 0) {
-									curSelection.insertNode(document.createElement("BR"));
-								}
-								curSelection.setStart(curSelection.endContainer, curSelection.endOffset);
-							}
-						} else {
-							// pasting as simple text otherwise
-							curSelection.insertNode(document.createTextNode(pastedText));
-						}
-
-						curSelection.setStart(curSelection.endContainer, curSelection.endOffset);
-					}
+				item.getAsString((clipboardText) => {
+					this.PasteText(clipboardText);
 				});
 				pasteEvent.preventDefault();
 			}

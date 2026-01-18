@@ -171,6 +171,12 @@ class TaralloClient {
 	}
 
 	LoadCard(cardData) {
+		cardData = Object.assign({}, cardData);
+
+		// process title markup
+		cardData['title'] = InlineMarkupToHtml(cardData['title']);
+
+		// create the new card
 		const newCardElem = TaralloUtils.LoadTemplate("tmpl-card", cardData);
 		const coverImgElem = newCardElem.querySelector("img");
 
@@ -439,6 +445,7 @@ class TaralloClient {
 		// create card element
 		const openCardData = Object.assign({}, jsonResponseObj);
 		openCardData["content"] = ContentMarkupToHtml(jsonResponseObj["content"], jsonResponseObj["attachmentList"]); // decode content
+		openCardData['title'] = InlineMarkupToHtml(jsonResponseObj['title']);
 		const openCardElem = TaralloUtils.LoadTemplate("tmpl-opencard", openCardData);
 
 		// load labels
@@ -467,6 +474,7 @@ class TaralloClient {
 		// events
 		TaralloUtils.SetEventBySelector(openCardElem, ".dialog-close-btn", "onclick", () => this.UiCloseDialog());
 		TaralloUtils.SetEventBySelector(openCardElem, "#opencard-title", "onblur", (elem) => this.UiCardTitleChanged(elem, openCardData["id"]));
+		TaralloUtils.SetEventBySelector(openCardElem, "#opencard-title", "onfocus", (elem) => this.UiCardTitleEditing(elem));
 		TaralloUtils.SetEventBySelector(openCardElem, "#opencard-title", "onkeydown", (elem, event) => TaralloUtils.BlurOnEnter(event));
 		TaralloUtils.SetEventBySelector(openCardElem, ".opencard-add-label", "onclick", () => this.UiOpenLabelSelectionDialog());
 		TaralloUtils.SetEventBySelector(openCardElem, ".opencard-label-cancel-btn", "onclick", () => this.UiCloseLabelSelectionDialog());
@@ -776,6 +784,11 @@ class TaralloClient {
 	UiCardTitleChanged(titleElement, cardID) {
 		const newTitle = titleElement.textContent;
 
+		// update title html
+		titleElement.innerHTML = InlineMarkupToHtml(newTitle);
+		window.getSelection().removeAllRanges();
+
+		// post update to the server
 		if (this.openCardCache[cardID] !== undefined) {
 			if (this.openCardCache[cardID]["title"] === newTitle) {			
 				return; // skip server update if the title didn't actually change
@@ -786,7 +799,7 @@ class TaralloClient {
 
 		let args = [];
 		args["id"] = titleElement.closest(".opencard").getAttribute("dbid");
-		args["title"] = titleElement.textContent;
+		args["title"] = newTitle;
 		TaralloServer.AsyncCall("UpdateCardTitle", args, (response) => this.OnCardUpdated(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
 	}
 
@@ -842,6 +855,13 @@ class TaralloClient {
 				event.preventDefault();
 			}
 		}
+	}
+
+	UiCardTitleEditing(titleElement) {
+		// change title to an editable version of the markup language while editing
+		const editableMarkup = ContentHtmlToMarkupEditing(titleElement.innerHTML);
+		titleElement.innerHTML = editableMarkup;
+		window.getSelection().removeAllRanges();
 	}
 
 	UiCardContentEditing(contentElement) {

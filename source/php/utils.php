@@ -53,7 +53,10 @@ class Utils {
 
     private static function DeleteDirInternal($dirPath)
     {
-        $fileNames = array_diff(scandir($dirPath), array('.','..'));
+        $fileNames = scandir($dirPath);
+        if (!$fileNames)
+            return;
+        $fileNames = array_diff($fileNames, array('.','..'));
 
         // remove files recursively
         foreach ($fileNames as $fileName) 

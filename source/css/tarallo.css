@@ -137,6 +137,16 @@ h4 {
     margin: 1.0rem;
 }
 
+.monospace {
+    font-family: monospace;
+    background-color: var(--bg-color-2);
+    color: var(--text-color-3);
+}
+
+span.monospace {
+    padding: 0rem 0.5rem;
+}
+
 input,select {
     width: 100%;
     color: var(--text-color-1);
@@ -362,6 +372,9 @@ a:hover {
     user-select: none;
     cursor: pointer;
 }
+    .card p { /* card title */
+        overflow-wrap: anywhere;
+    }
 
     .card .summary {
         display: flex;
@@ -603,19 +616,9 @@ a:hover {
         color: var(--text-color-2);
     }
 
-    .opencard-content .monospace {
-        font-family: monospace;
-        background-color: var(--bg-color-2);
-        color: var(--text-color-3);
-    }
-
         .opencard-content .monospace p {
             color: var(--text-color-3);
         }
-
-    .opencard-content span.monospace {      
-        padding: 0rem 0.5rem;
-    }
 
     .opencard-content .multiline-container {
         position: relative;
@@ -669,6 +672,7 @@ a:hover {
 
 .opencard h2 {
     border-radius: var(--border-radius);
+    overflow-wrap: anywhere;
 }
 
 .opencard-attachlist {

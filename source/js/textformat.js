@@ -54,6 +54,18 @@ function ParseMarkupListItem(markup) {
     return {'isListItem': false, 'isOrdererd': false, 'isCheckbox': false, 'isChecked': false, 'prefixLen': 0 };
 }
 
+function InlineMarkupToHtml(markupLine) {
+    // bold
+    markupLine = markupLine.replaceAll(/\*\*(.*?)\*\*/g, "<b>$1</b>"); 
+    // monospace
+    markupLine = markupLine.replaceAll(/`([^`]+?)`/g, "<span class=\"monospace\">$1</span>"); 
+    // links
+    const mouseDownJS = "if (event.which == 1) { window.open(\"$1\", \"_blank\"); event.preventDefault(); }";
+    markupLine = markupLine.replaceAll(/(https?:\/\/.*?)(\s|$)/g, "<a onmousedown='" + mouseDownJS + "' href='$1' contentEditable='false'>$1</a>$2"); 
+
+    return markupLine;
+}
+
 // converts the db markup language to displayable html
 function ContentMarkupToHtml(markup, attachmentList) {
     let html = "";
@@ -131,14 +143,8 @@ function ContentMarkupToHtml(markup, attachmentList) {
 
             // calc line indentation
             for(; lineIndent < markupLine.length && markupLine[lineIndent] === ' '; lineIndent++);
-
-            // bold
-            markupLine = markupLine.replaceAll(/\*\*(.*?)\*\*/g, "<b>$1</b>"); 
-            // monospace
-            markupLine = markupLine.replaceAll(/`([^`]+?)`/g, "<span class=\"monospace\">$1</span>"); 
-            // links
-            const mouseDownJS = "if (event.which == 1) { window.open(\"$1\", \"_blank\"); event.preventDefault(); }";
-            markupLine = markupLine.replaceAll(/(https?:\/\/.*?)(\s|$)/g, "<a onmousedown='" + mouseDownJS + "' href='$1' contentEditable='false'>$1</a>$2"); 
+            // process all inline markups
+            markupLine = InlineMarkupToHtml(markupLine)
         }
 
         // === convert line start tokens

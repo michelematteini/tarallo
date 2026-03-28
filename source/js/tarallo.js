@@ -274,11 +274,17 @@ class TaralloClient {
 		const boardElem = document.getElementById("board");
 		const newCardlistBtn = document.getElementById("add-cardlist-btn");
 
+		// cache board labels
 		if (contentObj["label_names"]) {
 			this.labelNames = contentObj["label_names"].split(",");
 			this.labelColors = contentObj["label_colors"].split(",");
 		}
 		this.allColorNames = contentObj["all_color_names"]; 
+
+		// remove logout link for guests
+		if (!contentObj["logged_in"]) {
+			document.getElementById("projectbar-logout-btn").remove();
+		}
 
 		// create card lists
 		for (const cardlist of TaralloUtils.DBLinkedListIterator(contentObj["cardlists"], "id", "prev_list_id", "next_list_id")) {
@@ -370,11 +376,15 @@ class TaralloClient {
 					this.ShowInfoPopup("Copied!", "page-error");
 				});
 
+				// attach event to the set as cover button
+				TaralloUtils.SetEventBySelector(attachmentElem, ".set-cover-btn", "onclick", () => this.UiSetAttachmentAsCardCover(jsonAttachment["id"]));
+
 			} else {
 				// prepare attachment with icon and extension
 				attachmentLinkElem.querySelector("img").remove();
-				// remove copy markup button
+				// remove image-only buttons
 				attachmentElem.querySelector(".copy-markup-btn").remove();
+				attachmentElem.querySelector(".set-cover-btn").remove();
 			}
 
 		} else {
@@ -582,6 +592,12 @@ class TaralloClient {
 			case "UnaccessibleBoard":
 				this.LoadUnaccessibleBoardPage(pageContent);
 				break;
+		}
+
+		// add page footer (not all pages support it)
+		if (pageName == "Login" || pageName == "BoardList" || pageName == "FirstStartup") {
+			document.getElementById("footer")?.remove();
+			TaralloUtils.GetContentElement().insertAdjacentElement("afterend", TaralloUtils.LoadTemplate("tmpl-footer", pageContent));
 		}
 
 		// update background if required
@@ -827,16 +843,20 @@ class TaralloClient {
 		contentElem.onkeyup = (e) => {
 			if (e.keyCode == 13) {
 				// enter while editing
-				const previousLine = document.getSelection().anchorNode?.previousSibling?.innerHTML;
-				if (previousLine) {
-					// autocomplete next list item
+				let previousLineElem = document.getSelection().anchorNode?.previousSibling;
+				if (previousLineElem) {
+					const previousLine = previousLineElem.innerHTML;
 					const listItem = ParseMarkupListItem(previousLine);
 					if (listItem.isListItem) {
+						// autocomplete next list item
 						const indentLen = previousLine.length - previousLine.trimStart().length;
 						const totItemPrefixLen = indentLen + listItem.prefixLen;
 						if (totItemPrefixLen < previousLine.length) {
 							// automatically add a new list item
 							this.PasteText(previousLine.substring(0, indentLen + listItem.prefixLen));
+						} else {
+							// enter after autocomplete: end list by clearing previous autocompleted line
+							previousLineElem.innerHTML = "<br>";
 						}
 					}
 				}
@@ -1027,7 +1047,7 @@ class TaralloClient {
 	}
 
 	UiAddAttachment(cardID) {
-		TaralloUtils.SelectFileDialog("image/*", true, (files) => {
+		TaralloUtils.SelectFileDialog("", true, (files) => {
 			for (const file of files) {
 				this.OnAttachmentSelected(file, cardID);
 			}
@@ -1046,6 +1066,12 @@ class TaralloClient {
 		let args = [];
 		args["id"] = attachmentID;
 		TaralloServer.AsyncCall("DeleteAttachment", args, (response) => this.OnAttachmentDeleted(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
+	}
+
+	UiSetAttachmentAsCardCover(attachmentID) {
+		let args = [];
+		args["id"] = attachmentID;
+		TaralloServer.AsyncCall("SetCardCover", args, (response) => this.OnCardUpdated(response), (msg) => this.ShowErrorPopup(msg, "page-error"));
 	}
 
 	OnAttachmentUpdated(jsonResponseObj) {
@@ -1294,6 +1320,7 @@ class TaralloClient {
 
 			// add on registration board permissions
 			AddSpecialPermission(-1, "On registration", "Permission for this board that is automatically assigned to new users on registration");
+			AddSpecialPermission(-2, "Public access", "Permission assigned to unregistered users.");
 		}
 
 		// add all permission rows

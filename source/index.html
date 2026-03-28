@@ -21,6 +21,8 @@
                 <button id="continue-btn" class="contrast-btn separator">Continue to Tarallo</button>
             </div>
         </div>
+    </template>
+    <template id="tmpl-footer">
         <div id="footer">
             Sources: <a href="https://github.com/michelematteini/tarallo">Github repository</a> | DB Version: $db_version
         </div>
@@ -36,9 +38,6 @@
                 <a id="register-page-btn" class="inline-link separator" href="#">register a new account</a>
                 <p id="login-error" class="popup separator"></p>
             </div>
-        </div>
-        <div id="footer">
-            Sources: <a href="https://github.com/michelematteini/tarallo">Github repository</a> | DB Version: $db_version
         </div>
     </template>
     <template id="tmpl-instance-msg">
@@ -57,9 +56,6 @@
                 <a id="login-page-btn" class="inline-link separator" href="#">go back to login page</a>
                 <p id="register-error" class="popup separator"></p>
             </div>
-        </div>
-        <div id="footer">
-            Sources: <a href="https://github.com/michelematteini/tarallo">Github repository</a> | DB Version: $db_version
         </div>
     </template>
     <template id="tmpl-boardlist">
@@ -87,9 +83,6 @@
             <div id="closed-boards">
             </div>
         </div>
-        <div id="footer">
-            Sources: <a href="https://github.com/michelematteini/tarallo">Github repository</a> | DB Version: $db_version
-        </div>
     </template>
     <template id="tmpl-boardtile">
         <div class="boardtile" style="background-image: url('$background_thumb_url')" id="board-tile-$id">
@@ -112,7 +105,7 @@
     <template id="tmpl-board">
         <div id="projectbar">
             <div id="projectbar-left" class="projectbar-tile">
-                <h2 id="board-title" contenteditable="true" spellcheck="false">$title</h2>
+                <h2 id="board-title" contenteditable="$can_edit_title" spellcheck="false">$title</h2>
                 <h3>
                     <a id="board-change-bg-btn" class="inline-link" href="#">background</a>
                     <a id="board-share-btn" class="inline-link" href="#">share</a>
@@ -185,7 +178,7 @@
     <template id="tmpl-cardlist">
         <div class="cardlist vscrollable" dbid="$id" id="cardlist-$id" draggable="true">
             <div class="cardlist-title">
-                <h3 contenteditable="true" spellcheck="false">$name</h3>
+                <h3 contenteditable="$can_edit_cardlist" spellcheck="false">$name</h3>
             </div>
             <div class="addcard-btn addcard-ui"><p>&#10010 Add a card</p></div>
             <div class="card editcard-card editcard-ui hidden" contenteditable="true" placeholder="Enter a title for this card..."></div>
@@ -215,7 +208,7 @@
         <div id="dialog-container">
             <div class="opencard dialog scrollable-dialog vscrollable" id="opencard-$id" dbid="$id">
                 <button class="dialog-close-btn close-btn dim-btn"></button>
-                <h2 id="opencard-title" contenteditable="true" spellcheck="false">$title</h2>
+                <h2 id="opencard-title" contenteditable="$can_edit_card" spellcheck="false">$title</h2>
                 <div class="opencard-labellist labellist">
                     <button class="opencard-add-label dim-btn">&#10010</button>
                 </div>
@@ -227,7 +220,7 @@
                     <h3>Description</h3>
                     <svg class="opencard-lock-btn icon"><use href="#icon-unlocked" /></svg>
                 </div>
-                <div class="opencard-content" contenteditable="true" spellcheck="false" data-placeholder="Insert the card description here.">$content</div>
+                <div class="opencard-content" contenteditable="$can_edit_card" spellcheck="false" data-placeholder="Insert the card description here.">$content</div>
                 <h3>
                     Attachments
                     <button class="add-attachment-btn contrast-btn">Add</button>
@@ -271,9 +264,10 @@
             </a>
             <div class="loader"></div>
             <div class="opencard-attachment-desc">
-                <p class="attachment-name" contenteditable="true">$name</p>
+                <p class="attachment-name" contenteditable="$can_edit_card">$name</p>
                 <div class="toolbar">
                     <button class="copy-markup-btn dim-btn thin-btn">Copy Markup</button>
+                    <button class="set-cover-btn dim-btn thin-btn">Set As Cover</button>
                 </div>
             </div>
             <div class="opencard-attachment-btns">

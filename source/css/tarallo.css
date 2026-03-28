@@ -167,6 +167,9 @@ label {
     color: var(--text-color-1);
     font-size: 1.2rem;
     line-height: 2rem;
+    text-wrap: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
 option {
@@ -731,6 +734,7 @@ a:hover {
 
 .opencard-attachment-desc .toolbar {
     display:flex;
+    gap: 0.5rem;
 }
 
 .opencard-attachment-btns {
@@ -1032,7 +1036,7 @@ button {
     }
 
     #share-dialog-list .share-dialog-item {
-        flex: 0 1 10rem;
+        flex: 0 1 12rem;
     }
 
 #instance-message {

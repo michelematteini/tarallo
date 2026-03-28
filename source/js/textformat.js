@@ -38,6 +38,14 @@ function ArrayToRegex(lang, index) {
         return new RegExp('(' + regexBody + ')', 'g');
 }
 
+function AllCharsAre(inString, inChar) {
+    for (let i = 0; i < inString.length; i++) {
+        if (inString[i] !== inChar)
+            return false;
+    }
+    return true;
+}
+
 function ParseMarkupListItem(markup) {
     const markupLineNoIndent = markup.trimStart();
 
@@ -55,6 +63,8 @@ function ParseMarkupListItem(markup) {
 }
 
 function InlineMarkupToHtml(markupLine) {
+    // italic + bold
+    markupLine = markupLine.replaceAll(/\*\*\*(.*?)\*\*\*/g, "<b><i>$1</i></b>"); 
     // bold
     markupLine = markupLine.replaceAll(/\*\*(.*?)\*\*/g, "<b>$1</b>"); 
     // monospace
@@ -224,6 +234,9 @@ function ContentMarkupToHtml(markup, attachmentList) {
             // build image html
             lineHtml += `<img class="content-img" src="${imgUrl}" alt="${imgAlt}" attachmentName="${attachmentName}">`
 
+        } else if (markupLine.length > 2 && (AllCharsAre(markupLine, '*') || AllCharsAre(markupLine, '-') || AllCharsAre(markupLine, '_'))) {
+            // horizontal line
+            lineHtml += "<hr>";
         } else if (markupLine.trim().length == 0) {
             // empty line
 
@@ -323,6 +336,12 @@ function HtmlNodeToMarkup(htmlNode) {
                 break;
             case "B":
                 outerHTML = "**" + outerHTML + "**";
+                break;
+            case "I":
+                outerHTML = "*" + outerHTML + "*";
+                break;
+            case "HR":
+                outerHTML = "___" + MARKUP_LINEBREAK;
                 break;
             case "INPUT":
                 if (childNode.type == "checkbox") {
